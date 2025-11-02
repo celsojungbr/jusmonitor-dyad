@@ -61,6 +61,55 @@ serve(async (req) => {
       nextCheck.setDate(nextCheck.getDate() + 7)
     }
 
+    // Obter configuração da API JUDiT (preferencial para callbacks)
+    const { data: apiConfig } = await supabaseClient
+      .from('api_configurations')
+      .select('*')
+      .eq('api_name', 'judit')
+      .eq('is_active', true)
+      .single()
+
+    let trackingId: string | null = null
+    let callbackUrl: string | null = null
+    let apiProvider: string | null = null
+
+    // Registrar callback na API (se disponível)
+    if (apiConfig) {
+      try {
+        const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? ''
+        callbackUrl = `${supabaseUrl}/functions/v1/judit-callback`
+
+        console.log(`[create-monitoring] Registrando callback JUDiT: ${callbackUrl}`)
+
+        // Registrar tracking na JUDiT
+        const response = await fetch(`${apiConfig.endpoint_url}/tracking/tracking`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${apiConfig.api_key}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            document: monitoringType === 'cnj' ? null : value,
+            cnj_number: monitoringType === 'cnj' ? value : null,
+            document_type: monitoringType === 'cpf' ? 'CPF' : monitoringType === 'cnpj' ? 'CNPJ' : null,
+            oab_number: monitoringType === 'oab' ? value : null,
+            callback_url: callbackUrl
+          })
+        })
+
+        if (response.ok) {
+          const data = await response.json()
+          trackingId = data.tracking_id || data.id
+          apiProvider = 'judit'
+          console.log(`[create-monitoring] Callback registrado. Tracking ID: ${trackingId}`)
+        } else {
+          console.error(`[create-monitoring] Erro ao registrar callback: ${response.status}`)
+        }
+      } catch (error) {
+        console.error('[create-monitoring] Erro ao registrar callback:', error)
+      }
+    }
+
     // Criar monitoramento
     const { data: monitoring, error: monitoringError } = await supabaseClient
       .from('monitorings')
@@ -73,7 +122,10 @@ serve(async (req) => {
         status: 'active',
         last_check: now.toISOString(),
         next_check: nextCheck.toISOString(),
-        alerts_count: 0
+        alerts_count: 0,
+        tracking_id: trackingId,
+        callback_url: callbackUrl,
+        api_provider: apiProvider
       })
       .select()
       .single()
