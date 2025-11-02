@@ -67,12 +67,13 @@ serve(async (req) => {
       )
     }
 
-    // Custo da consulta por tipo
+    // Custo da consulta por tipo (otimizado com cache)
+    // Cache da API JUDiT reduz custo significativamente
     const costMap = {
-      cpf: 5,
-      cnpj: 5,
-      oab: 5,
-      cnj: 3
+      cpf: 3,  // Reduzido de 5 para 3
+      cnpj: 3, // Reduzido de 5 para 3
+      oab: 3,  // Reduzido de 5 para 3
+      cnj: 2   // Reduzido de 3 para 2
     }
     const creditCost = costMap[searchType]
 
@@ -235,41 +236,118 @@ async function callJuditAPI(
   apiKey: string,
   baseUrl: string
 ): Promise<Process[]> {
-  // Baseado na documentação JUDiT em /docs/API_JUDiT.md
-  const endpoint = `${baseUrl}/v1/search`
+  console.log(`[JUDiT] Iniciando busca: ${searchType} = ${searchValue}`)
+
+  let endpoint: string
+  let requestBody: any
+
+  // Selecionar endpoint correto baseado no tipo de busca
+  if (searchType === 'cnj') {
+    // Busca por número CNJ - usar endpoint de requisições
+    endpoint = `${baseUrl}/requests/requests`
+    requestBody = {
+      cnj_number: searchValue,
+      cache: true // IMPORTANTE: usar cache quando disponível
+    }
+  } else if (searchType === 'cpf' || searchType === 'cnpj') {
+    // Busca por documento - usar endpoint request-document
+    endpoint = `${baseUrl}/requests/request-document`
+    requestBody = {
+      document: searchValue,
+      document_type: searchType === 'cpf' ? 'CPF' : 'CNPJ',
+      cache: true
+    }
+  } else if (searchType === 'oab') {
+    // Busca por OAB - geralmente precisa UF também
+    // Extrair número e UF se formato "123456/SP"
+    const oabMatch = searchValue.match(/^(\d+)\/?([A-Z]{2})?$/)
+    const oabNumber = oabMatch ? oabMatch[1] : searchValue
+    const oabUF = oabMatch && oabMatch[2] ? oabMatch[2] : 'SP' // Default SP se não especificado
+
+    endpoint = `${baseUrl}/requests/request-document`
+    requestBody = {
+      oab_number: oabNumber,
+      oab_state: oabUF,
+      cache: true
+    }
+  } else {
+    throw new Error(`Tipo de busca não suportado pela JUDiT: ${searchType}`)
+  }
+
+  console.log(`[JUDiT] Endpoint: ${endpoint}`)
+  console.log(`[JUDiT] Request body:`, JSON.stringify(requestBody))
 
   const response = await fetch(endpoint, {
     method: 'POST',
     headers: {
       'Authorization': `Bearer ${apiKey}`,
-      'Content-Type': 'application/json'
+      'Content-Type': 'application/json',
+      'Accept': 'application/json'
     },
-    body: JSON.stringify({
-      search_type: searchType,
-      search_value: searchValue
-    })
+    body: JSON.stringify(requestBody)
   })
 
   if (!response.ok) {
-    throw new Error(`JUDiT API error: ${response.status}`)
+    const errorText = await response.text()
+    console.error(`[JUDiT] API error ${response.status}:`, errorText)
+    throw new Error(`JUDiT API error: ${response.status} - ${errorText}`)
   }
 
   const data = await response.json()
+  console.log(`[JUDiT] Resposta recebida:`, JSON.stringify(data).substring(0, 200))
+
+  // JUDiT pode retornar diferentes estruturas dependendo do endpoint
+  let lawsuits = []
+
+  if (data.lawsuits) {
+    lawsuits = data.lawsuits
+  } else if (data.data && Array.isArray(data.data)) {
+    lawsuits = data.data
+  } else if (Array.isArray(data)) {
+    lawsuits = data
+  } else if (data.lawsuit) {
+    lawsuits = [data.lawsuit]
+  }
+
+  console.log(`[JUDiT] Processos encontrados: ${lawsuits.length}`)
 
   // Transformar resposta da JUDiT para formato padronizado
-  return data.processes.map((proc: any) => ({
-    cnj_number: proc.numero_cnj,
-    tribunal: proc.tribunal,
-    distribution_date: proc.data_distribuicao,
-    status: proc.situacao,
-    case_value: proc.valor_causa || 0,
-    judge_name: proc.juiz,
-    court_name: proc.vara,
-    phase: proc.fase,
-    author_names: proc.autores || [],
-    defendant_names: proc.reus || [],
-    parties_cpf_cnpj: proc.documentos_partes || []
+  return lawsuits.map((proc: any) => ({
+    cnj_number: proc.lawsuit_number || proc.cnj_number || proc.numero_cnj || '',
+    tribunal: proc.court || proc.tribunal || proc.orgao_julgador || '',
+    distribution_date: proc.distribution_date || proc.data_distribuicao || proc.filing_date || null,
+    status: proc.status || proc.situacao || proc.lawsuit_status || 'Em andamento',
+    case_value: parseFloat(proc.case_value || proc.valor_causa || proc.lawsuit_value || 0),
+    judge_name: proc.judge || proc.juiz || proc.judge_name || '',
+    court_name: proc.court_name || proc.vara || proc.court || '',
+    phase: proc.phase || proc.fase || proc.instance || proc.instancia || '',
+    author_names: extractNames(proc.plaintiffs || proc.autores || proc.author_names || []),
+    defendant_names: extractNames(proc.defendants || proc.reus || proc.defendant_names || []),
+    parties_cpf_cnpj: extractDocuments(proc.parties || proc.partes || [])
   }))
+}
+
+// Função auxiliar para extrair nomes de estruturas variadas
+function extractNames(parties: any): string[] {
+  if (Array.isArray(parties)) {
+    return parties.map(p => {
+      if (typeof p === 'string') return p
+      if (p.name) return p.name
+      if (p.nome) return p.nome
+      return JSON.stringify(p)
+    })
+  }
+  return []
+}
+
+// Função auxiliar para extrair documentos (CPF/CNPJ) de partes
+function extractDocuments(parties: any): string[] {
+  if (Array.isArray(parties)) {
+    return parties
+      .map(p => p.document || p.cpf_cnpj || p.documento || '')
+      .filter(doc => doc !== '')
+  }
+  return []
 }
 
 // ============================================
@@ -281,36 +359,129 @@ async function callEscavadorAPI(
   apiKey: string,
   baseUrl: string
 ): Promise<Process[]> {
-  // Baseado na documentação Escavador em /docs/API_Escavador.md
-  const endpoint = `${baseUrl}/api/v2/busca`
+  console.log(`[Escavador] Iniciando busca: ${searchType} = ${searchValue}`)
 
-  const response = await fetch(endpoint, {
-    method: 'GET',
-    headers: {
-      'Authorization': `Token ${apiKey}`,
-      'Content-Type': 'application/json'
-    },
-    // Query params baseados no tipo de busca
-  })
+  let endpoint: string
+  let method = 'POST'
+  let requestBody: any = {}
 
-  if (!response.ok) {
-    throw new Error(`Escavador API error: ${response.status}`)
+  // Selecionar endpoint correto baseado no tipo de busca
+  // Escavador usa busca assíncrona que é mais econômica
+  if (searchType === 'cnj') {
+    // Busca por número de processo (assíncrona)
+    endpoint = `${baseUrl}/v1/pesquisas/processo`
+    requestBody = {
+      numero_processo: searchValue
+    }
+  } else if (searchType === 'cpf' || searchType === 'cnpj') {
+    // Busca por CPF/CNPJ (assíncrona)
+    endpoint = `${baseUrl}/v1/pesquisas/cpf-cnpj`
+    requestBody = {
+      cpf_cnpj: searchValue
+    }
+  } else if (searchType === 'oab') {
+    // Busca por OAB (assíncrona)
+    // Extrair número e UF se formato "123456/SP"
+    const oabMatch = searchValue.match(/^(\d+)\/?([A-Z]{2})?$/)
+    const oabNumber = oabMatch ? oabMatch[1] : searchValue
+    const oabUF = oabMatch && oabMatch[2] ? oabMatch[2] : 'SP'
+
+    endpoint = `${baseUrl}/v1/pesquisas/oab`
+    requestBody = {
+      oab: oabNumber,
+      uf: oabUF
+    }
+  } else {
+    throw new Error(`Tipo de busca não suportado pelo Escavador: ${searchType}`)
   }
 
-  const data = await response.json()
+  console.log(`[Escavador] Endpoint: ${endpoint}`)
+  console.log(`[Escavador] Request body:`, JSON.stringify(requestBody))
 
-  // Transformar resposta do Escavador para formato padronizado
-  return data.results.map((proc: any) => ({
-    cnj_number: proc.numero_processo,
-    tribunal: proc.tribunal,
-    distribution_date: proc.data_inicio,
-    status: proc.status,
-    case_value: proc.valor || 0,
-    judge_name: proc.juiz || '',
-    court_name: proc.comarca || '',
-    phase: proc.instancia || '',
-    author_names: proc.partes_ativas || [],
-    defendant_names: proc.partes_passivas || [],
-    parties_cpf_cnpj: proc.documentos || []
-  }))
+  // Iniciar busca assíncrona
+  const searchResponse = await fetch(endpoint, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Token ${apiKey}`,
+      'Content-Type': 'application/json',
+      'Accept': 'application/json'
+    },
+    body: JSON.stringify(requestBody)
+  })
+
+  if (!searchResponse.ok) {
+    const errorText = await searchResponse.text()
+    console.error(`[Escavador] API error ${searchResponse.status}:`, errorText)
+    throw new Error(`Escavador API error: ${searchResponse.status} - ${errorText}`)
+  }
+
+  const searchData = await searchResponse.json()
+  console.log(`[Escavador] Busca iniciada:`, JSON.stringify(searchData))
+
+  // Escavador retorna um ID de busca assíncrona
+  const searchId = searchData.id || searchData.busca_id || searchData.search_id
+
+  if (!searchId) {
+    console.error(`[Escavador] ID de busca não encontrado na resposta`)
+    throw new Error('Escavador: ID de busca não retornado')
+  }
+
+  // Aguardar resultado (com retry)
+  const maxAttempts = 10
+  const retryDelay = 2000 // 2 segundos
+
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    console.log(`[Escavador] Tentativa ${attempt}/${maxAttempts} - Consultando resultado...`)
+
+    // Aguardar antes de consultar
+    await new Promise(resolve => setTimeout(resolve, retryDelay))
+
+    const resultResponse = await fetch(`${baseUrl}/v1/buscas-assincronas/${searchId}`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Token ${apiKey}`,
+        'Accept': 'application/json'
+      }
+    })
+
+    if (!resultResponse.ok) {
+      console.error(`[Escavador] Erro ao consultar resultado: ${resultResponse.status}`)
+      continue
+    }
+
+    const resultData = await resultResponse.json()
+    const status = resultData.status || resultData.situacao
+
+    console.log(`[Escavador] Status da busca: ${status}`)
+
+    if (status === 'completed' || status === 'concluida' || status === 'finalizada') {
+      // Busca concluída, processar resultados
+      const processes = resultData.processos || resultData.results || resultData.data || []
+
+      console.log(`[Escavador] Processos encontrados: ${processes.length}`)
+
+      // Transformar resposta do Escavador para formato padronizado
+      return processes.map((proc: any) => ({
+        cnj_number: proc.numero_processo || proc.cnj || proc.numero_cnj || '',
+        tribunal: proc.tribunal || proc.court || '',
+        distribution_date: proc.data_inicio || proc.data_distribuicao || proc.distribution_date || null,
+        status: proc.status || proc.situacao || 'Em andamento',
+        case_value: parseFloat(proc.valor || proc.valor_causa || proc.case_value || 0),
+        judge_name: proc.juiz || proc.judge || '',
+        court_name: proc.comarca || proc.vara || proc.court_name || '',
+        phase: proc.instancia || proc.fase || proc.instance || '',
+        author_names: extractNames(proc.partes_ativas || proc.authors || proc.plaintiffs || []),
+        defendant_names: extractNames(proc.partes_passivas || proc.defendants || []),
+        parties_cpf_cnpj: extractDocuments(proc.partes || proc.parties || [])
+      }))
+    } else if (status === 'error' || status === 'erro' || status === 'failed') {
+      throw new Error(`Escavador: Busca falhou - ${resultData.erro || resultData.error || 'Erro desconhecido'}`)
+    }
+
+    // Status ainda é 'pending' ou 'processando', continuar tentando
+  }
+
+  // Se chegou aqui, excedeu o número de tentativas
+  console.error(`[Escavador] Timeout: busca não concluída após ${maxAttempts} tentativas`)
+  throw new Error('Escavador: Timeout ao aguardar resultado da busca')
 }

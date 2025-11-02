@@ -46,26 +46,107 @@ serve(async (req) => {
 
         if (!apiConfig) continue
 
-        // Fazer chamada à API para verificar novidades
-        const response = await fetch(`${apiConfig.endpoint_url}/v1/monitoring/check`, {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${apiConfig.api_key}`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            type: monitoring.monitoring_type,
-            value: monitoring.monitoring_value,
-            last_check: monitoring.last_check
+        // IMPORTANTE: Esta função é temporária
+        // O ideal é usar webhooks/callbacks em vez de polling
+        // Ver docs/API_ANALYSIS_AND_PLAN.md - Sprint 2
+
+        let data: any = { has_updates: false, updates: [] }
+
+        // Chamar endpoint correto baseado no tipo de monitoramento
+        if (monitoring.monitoring_type === 'cnj') {
+          // Buscar atualizações do processo por CNJ
+          const response = await fetch(`${apiConfig.endpoint_url}/requests/requests`, {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${apiConfig.api_key}`,
+              'Content-Type': 'application/json',
+              'Accept': 'application/json'
+            },
+            body: JSON.stringify({
+              cnj_number: monitoring.monitoring_value,
+              cache: true,
+              include_movements: true
+            })
           })
-        })
 
-        if (!response.ok) {
-          console.error(`API error for monitoring ${monitoring.id}`)
-          continue
+          if (!response.ok) {
+            console.error(`[JUDiT] API error for monitoring ${monitoring.id}: ${response.status}`)
+            continue
+          }
+
+          const processData = await response.json()
+          const lawsuit = processData.lawsuit || processData.data || processData
+
+          // Verificar se há movimentações novas desde last_check
+          const movements = lawsuit.movements || lawsuit.movimentacoes || []
+          const lastCheckDate = new Date(monitoring.last_check || 0)
+
+          const newMovements = movements.filter((mov: any) => {
+            const movDate = new Date(mov.date || mov.data || mov.movement_date || 0)
+            return movDate > lastCheckDate
+          })
+
+          if (newMovements.length > 0) {
+            data = {
+              has_updates: true,
+              updates: newMovements.map((mov: any) => ({
+                type: 'new_movement',
+                data: mov,
+                description: mov.description || mov.descricao || mov.text || 'Nova movimentação'
+              }))
+            }
+          }
+
+        } else {
+          // Para CPF/CNPJ/OAB, buscar processos novos
+          const response = await fetch(`${apiConfig.endpoint_url}/requests/request-document`, {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${apiConfig.api_key}`,
+              'Content-Type': 'application/json',
+              'Accept': 'application/json'
+            },
+            body: JSON.stringify({
+              document: monitoring.monitoring_value,
+              document_type: monitoring.monitoring_type === 'cpf' ? 'CPF' : monitoring.monitoring_type === 'cnpj' ? 'CNPJ' : null,
+              oab_number: monitoring.monitoring_type === 'oab' ? monitoring.monitoring_value : null,
+              cache: true
+            })
+          })
+
+          if (!response.ok) {
+            console.error(`[JUDiT] API error for monitoring ${monitoring.id}: ${response.status}`)
+            continue
+          }
+
+          const searchData = await response.json()
+          const lawsuits = searchData.lawsuits || searchData.data || []
+
+          // Verificar processos novos
+          // Isso requer buscar processos já conhecidos do banco
+          const { data: knownProcesses } = await supabaseClient
+            .from('processes')
+            .select('cnj_number')
+            .contains('parties_cpf_cnpj', [monitoring.monitoring_value])
+
+          const knownCNJs = new Set(knownProcesses?.map(p => p.cnj_number) || [])
+
+          const newProcesses = lawsuits.filter((lawsuit: any) => {
+            const cnj = lawsuit.lawsuit_number || lawsuit.cnj_number || lawsuit.numero_cnj
+            return cnj && !knownCNJs.has(cnj)
+          })
+
+          if (newProcesses.length > 0) {
+            data = {
+              has_updates: true,
+              updates: newProcesses.map((proc: any) => ({
+                type: 'new_process',
+                data: proc,
+                description: `Novo processo encontrado: ${proc.lawsuit_number || proc.cnj_number || proc.numero_cnj}`
+              }))
+            }
+          }
         }
-
-        const data = await response.json()
 
         // Se houver novidades, criar alertas
         if (data.has_updates && data.updates && data.updates.length > 0) {
