@@ -22,3 +22,8 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# API Testing
+test-results-*.json
+.env.local
+.env.*.local
