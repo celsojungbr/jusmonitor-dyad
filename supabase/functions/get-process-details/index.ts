@@ -199,55 +199,146 @@ serve(async (req) => {
 })
 
 async function fetchProcessDetailsFromJudit(cnjNumber: string, apiKey: string, baseUrl: string) {
-  const response = await fetch(`${baseUrl}/v1/process/${cnjNumber}`, {
+  console.log(`[JUDiT] Buscando detalhes do processo: ${cnjNumber}`)
+
+  // Usar endpoint correto para buscar processo por CNJ com cache habilitado
+  const endpoint = `${baseUrl}/requests/requests`
+
+  const response = await fetch(endpoint, {
+    method: 'POST',
     headers: {
       'Authorization': `Bearer ${apiKey}`,
-      'Content-Type': 'application/json'
-    }
+      'Content-Type': 'application/json',
+      'Accept': 'application/json'
+    },
+    body: JSON.stringify({
+      cnj_number: cnjNumber,
+      cache: true, // IMPORTANTE: usar cache
+      include_movements: true, // Incluir movimentações
+      include_documents: true  // Incluir documentos/anexos
+    })
   })
 
-  if (!response.ok) throw new Error(`JUDiT API error: ${response.status}`)
+  if (!response.ok) {
+    const errorText = await response.text()
+    console.error(`[JUDiT] API error ${response.status}:`, errorText)
+    throw new Error(`JUDiT API error: ${response.status}`)
+  }
 
   const data = await response.json()
+  console.log(`[JUDiT] Resposta recebida para ${cnjNumber}`)
+
+  // JUDiT pode retornar diferentes estruturas
+  const lawsuit = data.lawsuit || data.data || data
 
   return {
-    cnj_number: data.numero_cnj,
-    tribunal: data.tribunal,
-    distribution_date: data.data_distribuicao,
-    status: data.situacao,
-    case_value: data.valor_causa || 0,
-    judge_name: data.juiz,
-    court_name: data.vara,
-    phase: data.fase,
-    author_names: data.autores || [],
-    defendant_names: data.reus || [],
-    parties_cpf_cnpj: data.documentos_partes || []
+    cnj_number: lawsuit.lawsuit_number || lawsuit.cnj_number || lawsuit.numero_cnj || cnjNumber,
+    tribunal: lawsuit.court || lawsuit.tribunal || lawsuit.orgao_julgador || '',
+    distribution_date: lawsuit.distribution_date || lawsuit.data_distribuicao || lawsuit.filing_date || null,
+    status: lawsuit.status || lawsuit.situacao || lawsuit.lawsuit_status || 'Em andamento',
+    case_value: parseFloat(lawsuit.case_value || lawsuit.valor_causa || lawsuit.lawsuit_value || 0),
+    judge_name: lawsuit.judge || lawsuit.juiz || lawsuit.judge_name || '',
+    court_name: lawsuit.court_name || lawsuit.vara || lawsuit.court || '',
+    phase: lawsuit.phase || lawsuit.fase || lawsuit.instance || lawsuit.instancia || '',
+    author_names: extractNames(lawsuit.plaintiffs || lawsuit.autores || lawsuit.author_names || []),
+    defendant_names: extractNames(lawsuit.defendants || lawsuit.reus || lawsuit.defendant_names || []),
+    parties_cpf_cnpj: extractDocuments(lawsuit.parties || lawsuit.partes || [])
   }
 }
 
+// Funções auxiliares (compartilhadas)
+function extractNames(parties: any): string[] {
+  if (Array.isArray(parties)) {
+    return parties.map(p => {
+      if (typeof p === 'string') return p
+      if (p.name) return p.name
+      if (p.nome) return p.nome
+      return JSON.stringify(p)
+    })
+  }
+  return []
+}
+
+function extractDocuments(parties: any): string[] {
+  if (Array.isArray(parties)) {
+    return parties
+      .map(p => p.document || p.cpf_cnpj || p.documento || '')
+      .filter(doc => doc !== '')
+  }
+  return []
+}
+
 async function fetchProcessDetailsFromEscavador(cnjNumber: string, apiKey: string, baseUrl: string) {
-  const response = await fetch(`${baseUrl}/api/v2/processos/${cnjNumber}`, {
+  console.log(`[Escavador] Buscando detalhes do processo: ${cnjNumber}`)
+
+  // Usar busca assíncrona (mais econômica)
+  const searchEndpoint = `${baseUrl}/v1/pesquisas/processo`
+
+  const searchResponse = await fetch(searchEndpoint, {
+    method: 'POST',
     headers: {
       'Authorization': `Token ${apiKey}`,
-      'Content-Type': 'application/json'
-    }
+      'Content-Type': 'application/json',
+      'Accept': 'application/json'
+    },
+    body: JSON.stringify({
+      numero_processo: cnjNumber
+    })
   })
 
-  if (!response.ok) throw new Error(`Escavador API error: ${response.status}`)
-
-  const data = await response.json()
-
-  return {
-    cnj_number: data.numero_processo,
-    tribunal: data.tribunal,
-    distribution_date: data.data_inicio,
-    status: data.status,
-    case_value: data.valor || 0,
-    judge_name: data.juiz || '',
-    court_name: data.comarca || '',
-    phase: data.instancia || '',
-    author_names: data.partes_ativas || [],
-    defendant_names: data.partes_passivas || [],
-    parties_cpf_cnpj: data.documentos || []
+  if (!searchResponse.ok) {
+    const errorText = await searchResponse.text()
+    console.error(`[Escavador] API error ${searchResponse.status}:`, errorText)
+    throw new Error(`Escavador API error: ${searchResponse.status}`)
   }
+
+  const searchData = await searchResponse.json()
+  const searchId = searchData.id || searchData.busca_id || searchData.search_id
+
+  if (!searchId) {
+    throw new Error('Escavador: ID de busca não retornado')
+  }
+
+  // Aguardar resultado (com retry)
+  const maxAttempts = 10
+  const retryDelay = 2000
+
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    await new Promise(resolve => setTimeout(resolve, retryDelay))
+
+    const resultResponse = await fetch(`${baseUrl}/v1/buscas-assincronas/${searchId}`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Token ${apiKey}`,
+        'Accept': 'application/json'
+      }
+    })
+
+    if (!resultResponse.ok) continue
+
+    const resultData = await resultResponse.json()
+    const status = resultData.status || resultData.situacao
+
+    if (status === 'completed' || status === 'concluida' || status === 'finalizada') {
+      const processo = resultData.processo || resultData.data || resultData
+
+      return {
+        cnj_number: processo.numero_processo || processo.cnj || processo.numero_cnj || cnjNumber,
+        tribunal: processo.tribunal || processo.court || '',
+        distribution_date: processo.data_inicio || processo.data_distribuicao || processo.distribution_date || null,
+        status: processo.status || processo.situacao || 'Em andamento',
+        case_value: parseFloat(processo.valor || processo.valor_causa || processo.case_value || 0),
+        judge_name: processo.juiz || processo.judge || '',
+        court_name: processo.comarca || processo.vara || processo.court_name || '',
+        phase: processo.instancia || processo.fase || processo.instance || '',
+        author_names: extractNames(processo.partes_ativas || processo.authors || processo.plaintiffs || []),
+        defendant_names: extractNames(processo.partes_passivas || processo.defendants || []),
+        parties_cpf_cnpj: extractDocuments(processo.partes || processo.parties || [])
+      }
+    } else if (status === 'error' || status === 'erro' || status === 'failed') {
+      throw new Error(`Escavador: Busca falhou - ${resultData.erro || resultData.error}`)
+    }
+  }
+
+  throw new Error('Escavador: Timeout ao aguardar resultado da busca')
 }

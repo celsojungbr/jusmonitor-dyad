@@ -65,7 +65,21 @@ serve(async (req) => {
       )
     }
 
-    // 3. Obter URL do anexo via API JUDiT
+    // 3. Buscar processo relacionado ao anexo
+    const { data: process } = await supabaseClient
+      .from('processes')
+      .select('cnj_number')
+      .eq('id', attachment.process_id)
+      .single()
+
+    if (!process) {
+      return new Response(
+        JSON.stringify({ error: 'Process not found' }),
+        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    // 4. Obter URL do anexo via API JUDiT
     const { data: apiConfig } = await supabaseClient
       .from('api_configurations')
       .select('*')
@@ -80,26 +94,48 @@ serve(async (req) => {
       )
     }
 
-    const response = await fetch(`${apiConfig.endpoint_url}/v1/attachments/${attachmentId}`, {
+    console.log(`[JUDiT] Solicitando download de anexo: ${attachment.attachment_name}`)
+
+    // Endpoint correto para transferência de arquivos
+    // Ver: https://docs.judit.io/file-transfer/file-transfer
+    const response = await fetch(`${apiConfig.endpoint_url}/file-transfer`, {
+      method: 'POST',
       headers: {
         'Authorization': `Bearer ${apiConfig.api_key}`,
-        'Content-Type': 'application/json'
-      }
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      body: JSON.stringify({
+        cnj_number: process.cnj_number,
+        document_id: attachmentId,
+        document_name: attachment.attachment_name,
+        action: 'download' // ou 'get_url' dependendo da API
+      })
     })
 
     if (!response.ok) {
+      const errorText = await response.text()
+      console.error(`[JUDiT] API error ${response.status}:`, errorText)
       throw new Error(`JUDiT API error: ${response.status}`)
     }
 
     const data = await response.json()
+    console.log(`[JUDiT] URL de download obtida`)
 
-    // 4. Deduzir créditos
+    // URL pode estar em diferentes campos
+    const downloadUrl = data.download_url || data.url || data.file_url || data.link
+
+    if (!downloadUrl) {
+      throw new Error('Download URL not found in API response')
+    }
+
+    // 5. Deduzir créditos
     await supabaseClient
       .from('credits_plans')
       .update({ credits_balance: plan.credits_balance - creditCost })
       .eq('user_id', userId)
 
-    // 5. Registrar transação
+    // 6. Registrar transação
     await supabaseClient
       .from('credit_transactions')
       .insert({
@@ -110,13 +146,15 @@ serve(async (req) => {
         description: `Download de ${attachment.attachment_name}`
       })
 
-    // 6. Retornar URL para download
+    // 7. Retornar URL para download
     return new Response(
       JSON.stringify({
         success: true,
-        download_url: data.download_url,
+        download_url: downloadUrl,
         credits_consumed: creditCost,
-        attachment_name: attachment.attachment_name
+        attachment_name: attachment.attachment_name,
+        file_size: attachment.file_size,
+        attachment_type: attachment.attachment_type
       }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
