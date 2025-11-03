@@ -3,6 +3,9 @@ project_id = "mklfiunuhaaunytvtnfo"
 [functions.admin-api-config]
 verify_jwt = true
 
+[functions.escavador_consulta_CPF_CNPJ]
+verify_jwt = true
+
 [functions.ai-chat-process]
 verify_jwt = true
 

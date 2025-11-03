@@ -105,47 +105,128 @@ const Consultas = () => {
     setSimpleSearchResult(null)
     
     try {
-      // PASSO 1: Busca Simples (gratuita)
-      const response = await supabase.functions.invoke('search-processes-simple', {
-        body: {
+      const userId = (await supabase.auth.getUser()).data.user?.id
+
+      // Para CPF/CNPJ: usar nova função Escavador v2
+      if (data.tipoIdentificador === 'cpf' || data.tipoIdentificador === 'cnpj') {
+        const response = await supabase.functions.invoke('escavador_consulta_CPF_CNPJ', {
+          body: {
+            userId,
+            document: data.valor
+          }
+        })
+
+        if (response.error) throw response.error
+
+        const result = response.data
+
+        // Tratar erros específicos
+        if (result.error) {
+          if (result.error === 'Unauthenticated') {
+            toast({
+              title: "Erro de autenticação",
+              description: "Problema com as credenciais da API Escavador",
+              variant: "destructive",
+            })
+          } else if (result.error.includes('saldo')) {
+            toast({
+              title: "Sem créditos na API",
+              description: "Você não possui saldo em crédito da API Escavador",
+              variant: "destructive",
+            })
+          } else {
+            throw new Error(result.error)
+          }
+          return
+        }
+
+        const buscaId = Date.now().toString()
+        const novaBusca: Busca = {
+          id: buscaId,
+          tipo: 'processual',
+          tipoIdentificador: data.tipoIdentificador,
+          valor: data.valor,
+          resultados: result.results_count || 0,
+          data: new Date(),
+          fromCache: false,
+          creditsConsumed: 0,
+          apiUsed: 'escavador'
+        }
+
+        setBuscas([novaBusca, ...buscas])
+
+        // Mapear items do Escavador v2 para formato Process
+        const processosMapeados: Process[] = (result.items || []).map((item: any) => ({
+          id: item.numero_cnj,
+          cnj_number: item.numero_cnj,
+          tribunal: item.fontes?.[0]?.sigla || item.fontes?.[0]?.tribunal?.sigla || 'Desconhecido',
+          court_name: item.fontes?.[0]?.nome || null,
+          distribution_date: item.data_inicio || null,
+          status: item.fontes?.[0]?.status_predito || item.fontes?.[0]?.capa?.situacao || 'Encontrado',
+          author_names: item.titulo_polo_ativo ? [item.titulo_polo_ativo] : [],
+          defendant_names: item.titulo_polo_passivo ? [item.titulo_polo_passivo] : [],
+          parties_cpf_cnpj: [data.valor.replace(/\D/g, '')],
+          last_update: new Date().toISOString(),
+          created_at: new Date().toISOString(),
+        }))
+
+        setProcessosCache(prev => ({ ...prev, [buscaId]: processosMapeados }))
+
+        // Guardar resultado para opção de aprofundamento
+        setSimpleSearchResult({
           searchType: data.tipoIdentificador,
           searchValue: data.valor,
-          userId: (await supabase.auth.getUser()).data.user?.id
+          results: processosMapeados,
+          resultsCount: result.results_count
+        })
+
+        toast({
+          title: "Busca simples concluída (gratuita)",
+          description: `${result.results_count} processo(s) encontrado(s) no Escavador`,
+        })
+      } else {
+        // Para CNJ/OAB: usar lógica anterior
+        const response = await supabase.functions.invoke('search-processes-simple', {
+          body: {
+            searchType: data.tipoIdentificador,
+            searchValue: data.valor,
+            userId
+          }
+        })
+
+        if (response.error) throw response.error
+
+        const simpleResult = response.data
+        
+        const buscaId = Date.now().toString()
+        const novaBusca: Busca = {
+          id: buscaId,
+          tipo: 'processual',
+          tipoIdentificador: data.tipoIdentificador,
+          valor: data.valor,
+          resultados: simpleResult.results_count,
+          data: new Date(),
+          fromCache: simpleResult.from_cache,
+          creditsConsumed: 0,
+          apiUsed: 'escavador'
         }
-      })
+        
+        setBuscas([novaBusca, ...buscas])
+        setProcessosCache(prev => ({ ...prev, [buscaId]: simpleResult.processes || [] }))
+        
+        // Guardar resultado para opção de aprofundamento
+        setSimpleSearchResult({
+          searchType: data.tipoIdentificador,
+          searchValue: data.valor,
+          results: simpleResult.processes || [],
+          resultsCount: simpleResult.results_count
+        })
 
-      if (response.error) throw response.error
-
-      const simpleResult = response.data
-      
-      const buscaId = Date.now().toString()
-      const novaBusca: Busca = {
-        id: buscaId,
-        tipo: 'processual',
-        tipoIdentificador: data.tipoIdentificador,
-        valor: data.valor,
-        resultados: simpleResult.results_count,
-        data: new Date(),
-        fromCache: simpleResult.from_cache,
-        creditsConsumed: 0,
-        apiUsed: 'escavador'
+        toast({
+          title: "Busca simples concluída (gratuita)",
+          description: `${simpleResult.results_count} processo(s) encontrado(s)`,
+        })
       }
-      
-      setBuscas([novaBusca, ...buscas])
-      setProcessosCache(prev => ({ ...prev, [buscaId]: simpleResult.processes || [] }))
-      
-      // Guardar resultado para opção de aprofundamento
-      setSimpleSearchResult({
-        searchType: data.tipoIdentificador,
-        searchValue: data.valor,
-        results: simpleResult.processes || [],
-        resultsCount: simpleResult.results_count
-      })
-
-      toast({
-        title: "Busca simples concluída (gratuita)",
-        description: `${simpleResult.results_count} processo(s) encontrado(s) nos diários oficiais`,
-      })
     } catch (error: any) {
       console.error('Erro na consulta simples:', error)
       
