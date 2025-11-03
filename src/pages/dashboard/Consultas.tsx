@@ -76,21 +76,44 @@ const Consultas = () => {
         const processosPromises = buscasCarregadas
           .filter(b => b.tipo === 'processual' && b.resultados > 0) // Apenas buscas com resultados
           .map(async (busca) => {
-            // Buscar processos pela pesquisa específica usando o valor da busca
-            const { data: procs } = await supabase
-              .from('processes')
-              .select('*')
-              .contains('parties_cpf_cnpj', [busca.valor.replace(/\D/g, '')])
-              .order('created_at', { ascending: false })
+            try {
+              let query = supabase
+                .from('processes')
+                .select('*')
 
-            const processos: Process[] = (procs || []).map(p => ({
-              ...p,
-              author_names: Array.isArray(p.author_names) ? p.author_names : [],
-              defendant_names: Array.isArray(p.defendant_names) ? p.defendant_names : [],
-              parties_cpf_cnpj: Array.isArray(p.parties_cpf_cnpj) ? p.parties_cpf_cnpj : []
-            })) as Process[]
+              // Diferenciar filtro por tipo de identificador
+              if (busca.tipoIdentificador === 'cnj') {
+                // Para CNJ, buscar pelo número CNJ diretamente
+                query = query.eq('cnj_number', busca.valor.replace(/\s/g, ''))
+              } else if (busca.tipoIdentificador === 'cpf' || busca.tipoIdentificador === 'cnpj') {
+                // Para CPF/CNPJ, usar filtro contains com JSON válido
+                const onlyDigits = busca.valor.replace(/\D/g, '')
+                const jsonArray = JSON.stringify([onlyDigits])
+                query = query.filter('parties_cpf_cnpj', 'cs', jsonArray)
+              } else {
+                // Outros tipos não suportados ainda
+                return { buscaId: busca.id, processos: [] }
+              }
 
-            return { buscaId: busca.id, processos }
+              const { data: procs, error: procsError } = await query.order('created_at', { ascending: false })
+
+              if (procsError) {
+                console.error(`Erro ao carregar processos para busca ${busca.id}:`, procsError)
+                return { buscaId: busca.id, processos: [] }
+              }
+
+              const processos: Process[] = (procs || []).map(p => ({
+                ...p,
+                author_names: Array.isArray(p.author_names) ? p.author_names : [],
+                defendant_names: Array.isArray(p.defendant_names) ? p.defendant_names : [],
+                parties_cpf_cnpj: Array.isArray(p.parties_cpf_cnpj) ? p.parties_cpf_cnpj : []
+              })) as Process[]
+
+              return { buscaId: busca.id, processos }
+            } catch (error) {
+              console.error(`Erro ao processar busca ${busca.id}:`, error)
+              return { buscaId: busca.id, processos: [] }
+            }
           })
 
         const processosResults = await Promise.all(processosPromises)
@@ -132,10 +155,12 @@ const Consultas = () => {
           console.log('Busca assíncrona concluída!')
           
           // Buscar processos encontrados
+          const onlyDigits = String(deepSearchInProgress.searchValue ?? '').replace(/\D/g, '')
+          const jsonArray = JSON.stringify([onlyDigits])
           const { data: rawProcesses } = await supabase
             .from('processes')
             .select('*')
-            .contains('parties_cpf_cnpj', [deepSearchInProgress.searchValue])
+            .filter('parties_cpf_cnpj', 'cs', jsonArray)
 
           // Garantir que os tipos estão corretos
           const processes: Process[] = (rawProcesses || []).map(p => ({
