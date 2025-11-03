@@ -22,6 +22,103 @@ const Consultas = () => {
   const [simpleSearchResult, setSimpleSearchResult] = useState<any>(null)
   const [deepSearchInProgress, setDeepSearchInProgress] = useState<any>(null)
 
+  // Carregar histórico de buscas ao montar o componente
+  useEffect(() => {
+    const loadSearchHistory = async () => {
+      try {
+        const userId = (await supabase.auth.getUser()).data.user?.id
+        if (!userId) return
+
+        // Buscar histórico de buscas do usuário
+        const { data: searches, error } = await supabase
+          .from('user_searches')
+          .select('*')
+          .eq('user_id', userId)
+          .order('created_at', { ascending: false })
+          .limit(50)
+
+        if (error) {
+          console.error('Erro ao carregar histórico:', error)
+          return
+        }
+
+        if (!searches || searches.length === 0) return
+
+        // Transformar dados do banco para formato Busca
+        const buscasCarregadas: Busca[] = searches.map((search) => {
+          // Determinar o tipo de busca baseado no search_type
+          let tipo: 'processual' | 'cadastral' | 'penal' = 'processual'
+          let tipoIdentificador: 'cpf' | 'cnpj' | 'cnj' | 'oab' | undefined = undefined
+          
+          // SearchType pode ser: 'cpf' | 'cnpj' | 'cnj' | 'oab'
+          if (['cpf', 'cnpj', 'cnj', 'oab'].includes(search.search_type)) {
+            tipo = 'processual'
+            tipoIdentificador = search.search_type as 'cpf' | 'cnpj' | 'cnj' | 'oab'
+          }
+          
+          return {
+            id: search.id,
+            tipo,
+            tipoIdentificador,
+            valor: search.search_value,
+            resultados: search.results_count || 0,
+            data: new Date(search.created_at),
+            fromCache: search.from_cache || false,
+            creditsConsumed: search.credits_consumed || 0,
+            apiUsed: search.api_used || 'escavador'
+          }
+        })
+
+        setBuscas(buscasCarregadas)
+
+        // Carregar processos relacionados para cada busca processual
+        const processosPromises = buscasCarregadas
+          .filter(b => b.tipo === 'processual')
+          .map(async (busca) => {
+            const { data: userProcs } = await supabase
+              .from('user_processes')
+              .select('process_id')
+              .eq('user_id', userId)
+              .limit(100)
+
+            if (!userProcs || userProcs.length === 0) return { buscaId: busca.id, processos: [] }
+
+            const processIds = userProcs.map(up => up.process_id)
+
+            const { data: procs } = await supabase
+              .from('processes')
+              .select('*')
+              .in('id', processIds)
+              .contains('parties_cpf_cnpj', [busca.valor.replace(/\D/g, '')])
+
+            const processos: Process[] = (procs || []).map(p => ({
+              ...p,
+              author_names: Array.isArray(p.author_names) ? p.author_names : [],
+              defendant_names: Array.isArray(p.defendant_names) ? p.defendant_names : [],
+              parties_cpf_cnpj: Array.isArray(p.parties_cpf_cnpj) ? p.parties_cpf_cnpj : []
+            })) as Process[]
+
+            return { buscaId: busca.id, processos }
+          })
+
+        const processosResults = await Promise.all(processosPromises)
+        
+        const newCache: Record<string, Process[]> = {}
+        processosResults.forEach(result => {
+          newCache[result.buscaId] = result.processos
+        })
+
+        setProcessosCache(newCache)
+
+        console.log(`Histórico carregado: ${buscasCarregadas.length} buscas`)
+      } catch (error) {
+        console.error('Erro ao carregar histórico:', error)
+      }
+    }
+
+    loadSearchHistory()
+  }, []) // Executar apenas uma vez ao montar
+
   // Polling para buscas assíncronas
   useEffect(() => {
     if (!deepSearchInProgress) return
