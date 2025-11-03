@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react"
 import { supabase } from "@/integrations/supabase/client"
 import { Process, ProcessMovement, ProcessAttachment } from "@/shared/types/database.types"
+import { ProcessoService } from "../services/processoService"
 import { useToast } from "@/hooks/use-toast"
 
 export const useProcessoDetalhes = (cnjNumber: string) => {
@@ -92,25 +93,23 @@ export const useProcessoDetalhes = (cnjNumber: string) => {
 
     setCapturandoAnexos(true)
     try {
-      // TODO: Integrar com edge function download-attachments
+      // Chamar edge function capture-attachments
+      const response = await ProcessoService.captureAttachments(cnjNumber)
+      
       toast({
         title: "Captura iniciada",
-        description: "Os anexos estão sendo capturados. Este processo pode levar até 48h."
+        description: response.message || "Os anexos estão sendo capturados. Você será notificado quando concluir."
       })
       
-      console.log("Capturando anexos para:", cnjNumber)
-      
-      // Simular captura
-      await new Promise(resolve => setTimeout(resolve, 2000))
-      
-      toast({
-        title: "Captura agendada",
-        description: "Você será notificado quando os anexos estiverem disponíveis"
-      })
+      // Recarregar dados após 5 segundos
+      setTimeout(() => {
+        fetchProcessoDetalhes()
+      }, 5000)
     } catch (error) {
+      console.error('Erro na captura de anexos:', error)
       toast({
         title: "Erro na captura",
-        description: "Não foi possível iniciar a captura de anexos",
+        description: error instanceof Error ? error.message : "Não foi possível iniciar a captura de anexos",
         variant: "destructive"
       })
     } finally {
@@ -122,17 +121,32 @@ export const useProcessoDetalhes = (cnjNumber: string) => {
     if (!processo) return
 
     try {
-      // TODO: Integrar com edge function para gerar PDF completo
       toast({
         title: "Gerando dossiê",
         description: "O PDF completo está sendo preparado..."
       })
       
-      console.log("Gerando PDF para:", cnjNumber)
+      // Chamar edge function generate-pdf-dossier
+      const response = await ProcessoService.generatePdfDossier(cnjNumber, true)
+      
+      // Criar blob do HTML e abrir em nova aba
+      const blob = new Blob([response.pdf_html], { type: 'text/html' })
+      const url = URL.createObjectURL(blob)
+      const newWindow = window.open(url, '_blank')
+      
+      if (newWindow) {
+        setTimeout(() => URL.revokeObjectURL(url), 100)
+      }
+      
+      toast({
+        title: "Dossiê gerado",
+        description: `PDF com ${response.movements_count} movimentações e ${response.attachments_count} anexos • ${response.credits_consumed} créditos`,
+      })
     } catch (error) {
+      console.error('Erro ao gerar PDF:', error)
       toast({
         title: "Erro ao gerar PDF",
-        description: "Não foi possível gerar o dossiê",
+        description: error instanceof Error ? error.message : "Não foi possível gerar o dossiê",
         variant: "destructive"
       })
     }

@@ -4,61 +4,51 @@ import { ConsultasTabs } from "@/features/consultas/components/ConsultasTabs"
 import { HistoricoBuscas } from "@/features/consultas/components/HistoricoBuscas"
 import { ConsultaProcessualData, ConsultaCadastralData, ConsultaPenalData, Busca } from "@/features/consultas/types/consulta.types"
 import { Process } from "@/shared/types/database.types"
+import { ConsultaService } from "@/features/consultas/services/consultaService"
 
 const Consultas = () => {
   const { toast } = useToast()
   const [loading, setLoading] = useState(false)
   const [buscas, setBuscas] = useState<Busca[]>([])
   const [processosCache, setProcessosCache] = useState<Record<string, Process[]>>({})
+  const [dadosCadastraisCache, setDadosCadastraisCache] = useState<Record<string, any>>({})
+  const [dadosPenaisCache, setDadosPenaisCache] = useState<Record<string, any>>({})
 
   const handleConsultaProcessual = async (data: ConsultaProcessualData) => {
     setLoading(true)
     try {
-      // TODO: Integrar com edge function search-processes
-      console.log("Consulta Processual:", data)
+      // Chamar API real via ConsultaService
+      const response = await ConsultaService.searchProcesses(
+        data.tipoIdentificador,
+        data.valor
+      )
       
-      // Simular resposta para desenvolvimento
       const buscaId = Date.now().toString()
-      const numResultados = Math.floor(Math.random() * 15) + 1
       
       const novaBusca: Busca = {
         id: buscaId,
         tipo: 'processual',
         tipoIdentificador: data.tipoIdentificador,
         valor: data.valor,
-        resultados: numResultados,
-        data: new Date()
+        resultados: response.results_count,
+        data: new Date(),
+        fromCache: response.from_cache,
+        creditsConsumed: response.credits_consumed,
+        apiUsed: 'judit'
       }
       
-      // Simular processos encontrados
-      const processosMock: Process[] = Array.from({ length: numResultados }, (_, i) => ({
-        id: `${buscaId}-processo-${i}`,
-        cnj_number: `${String(i).padStart(7, '0')}-${Math.floor(Math.random() * 99)}.2024.8.26.${String(Math.floor(Math.random() * 9999)).padStart(4, '0')}`,
-        tribunal: ['TJ-SP', 'TJ-RJ', 'TJ-MG'][Math.floor(Math.random() * 3)],
-        distribution_date: new Date(2024, Math.floor(Math.random() * 12), Math.floor(Math.random() * 28) + 1).toISOString(),
-        status: ['Ativo', 'Arquivado', 'Suspenso'][Math.floor(Math.random() * 3)],
-        case_value: Math.random() * 100000,
-        judge_name: 'Dr. João Silva',
-        court_name: `${Math.floor(Math.random() * 50) + 1}ª Vara Cível`,
-        phase: ['Conhecimento', 'Execução', 'Recursal'][Math.floor(Math.random() * 3)],
-        author_names: ['João da Silva', 'Maria Santos'],
-        defendant_names: ['Empresa XYZ Ltda', 'José Oliveira'],
-        parties_cpf_cnpj: ['12345678900', '98765432100'],
-        last_update: new Date().toISOString(),
-        created_at: new Date().toISOString()
-      }))
-      
       setBuscas([novaBusca, ...buscas])
-      setProcessosCache(prev => ({ ...prev, [buscaId]: processosMock }))
+      setProcessosCache(prev => ({ ...prev, [buscaId]: response.processes }))
       
       toast({
-        title: "Busca realizada",
-        description: `Encontrados ${novaBusca.resultados} processos`
+        title: response.from_cache ? "Busca (cache)" : "Busca realizada",
+        description: `${response.results_count} processo(s) encontrado(s) • ${response.credits_consumed} crédito(s) consumido(s)`,
       })
     } catch (error) {
+      console.error('Erro na consulta processual:', error)
       toast({
         title: "Erro na busca",
-        description: "Não foi possível realizar a consulta",
+        description: error instanceof Error ? error.message : "Não foi possível realizar a consulta",
         variant: "destructive"
       })
     } finally {
@@ -69,28 +59,38 @@ const Consultas = () => {
   const handleConsultaCadastral = async (data: ConsultaCadastralData) => {
     setLoading(true)
     try {
-      // TODO: Integrar com edge function
-      console.log("Consulta Cadastral:", data)
+      // Chamar API real
+      const response = await ConsultaService.searchRegistrationData(
+        data.tipoIdentificador,
+        data.valor
+      )
+      
+      const buscaId = Date.now().toString()
       
       const novaBusca: Busca = {
-        id: Date.now().toString(),
+        id: buscaId,
         tipo: 'cadastral',
         tipoIdentificador: data.tipoIdentificador,
         valor: data.valor,
         resultados: 1,
-        data: new Date()
+        data: new Date(),
+        fromCache: response.from_cache,
+        creditsConsumed: response.credits_consumed,
+        apiUsed: 'judit'
       }
       
       setBuscas([novaBusca, ...buscas])
+      setDadosCadastraisCache(prev => ({ ...prev, [buscaId]: response.data }))
       
       toast({
-        title: "Consulta cadastral realizada",
-        description: "Dados cadastrais encontrados"
+        title: response.from_cache ? "Consulta cadastral (cache)" : "Consulta cadastral realizada",
+        description: `Dados de ${response.data.name} • ${response.credits_consumed} crédito(s) consumido(s)`,
       })
     } catch (error) {
+      console.error('Erro na consulta cadastral:', error)
       toast({
         title: "Erro na consulta",
-        description: "Não foi possível realizar a consulta cadastral",
+        description: error instanceof Error ? error.message : "Não foi possível realizar a consulta cadastral",
         variant: "destructive"
       })
     } finally {
@@ -101,27 +101,41 @@ const Consultas = () => {
   const handleConsultaPenal = async (data: ConsultaPenalData) => {
     setLoading(true)
     try {
-      // TODO: Integrar com edge function
-      console.log("Consulta Penal:", data)
+      // Chamar API real
+      const response = await ConsultaService.searchCriminalRecords(data.cpf)
+      
+      const buscaId = Date.now().toString()
+      
+      const totalRecords = 
+        (response.data.warrants?.length || 0) + 
+        (response.data.criminal_executions?.length || 0)
       
       const novaBusca: Busca = {
-        id: Date.now().toString(),
+        id: buscaId,
         tipo: 'penal',
         valor: data.cpf,
-        resultados: Math.floor(Math.random() * 5),
-        data: new Date()
+        resultados: totalRecords,
+        data: new Date(),
+        fromCache: response.from_cache,
+        creditsConsumed: response.credits_consumed,
+        apiUsed: 'judit'
       }
       
       setBuscas([novaBusca, ...buscas])
+      setDadosPenaisCache(prev => ({ ...prev, [buscaId]: response.data }))
       
       toast({
-        title: "Consulta penal realizada",
-        description: `${novaBusca.resultados} registro(s) encontrado(s)`
+        title: response.from_cache ? "Consulta penal (cache)" : "Consulta penal realizada",
+        description: response.data.has_active_warrants 
+          ? `⚠️ ${totalRecords} registro(s) encontrado(s) • ${response.credits_consumed} crédito(s)` 
+          : `Nada consta • ${response.credits_consumed} crédito(s)`,
+        variant: response.data.has_active_warrants ? "destructive" : "default"
       })
     } catch (error) {
+      console.error('Erro na consulta penal:', error)
       toast({
         title: "Erro na consulta",
-        description: "Não foi possível realizar a consulta penal",
+        description: error instanceof Error ? error.message : "Não foi possível realizar a consulta penal",
         variant: "destructive"
       })
     } finally {

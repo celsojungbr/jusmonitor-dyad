@@ -112,9 +112,64 @@ serve(async (req) => {
 
     let processes: Process[] = cachedProcesses
     let fromCache = cachedProcesses.length > 0
+    let usedDiariosOficiais = false
 
-    // 3. Se não estiver no cache ou desatualizado, chamar APIs
-    if (!fromCache) {
+    // 3. Se não estiver no cache, tentar DIÁRIOS OFICIAIS PRIMEIRO (GRATUITO)
+    if (!fromCache && searchType !== 'cnj') {
+      console.log('[Search] Tentando Diários Oficiais (GRATUITO)...')
+      
+      try {
+        // Chamar search-diarios-oficiais internamente
+        const diariosResponse = await fetch(
+          `${Deno.env.get('SUPABASE_URL')}/functions/v1/search-diarios-oficiais`,
+          {
+            method: 'POST',
+            headers: {
+              'Authorization': req.headers.get('Authorization')!,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              searchType: searchType === 'cpf' || searchType === 'cnpj' ? searchType : searchType === 'oab' ? 'oab' : 'nome',
+              searchValue,
+              userId
+            })
+          }
+        )
+
+        if (diariosResponse.ok) {
+          const diariosData = await diariosResponse.json()
+          
+          // Se encontrou processos mencionados nos diários
+          if (diariosData.processes_mentioned && diariosData.processes_mentioned.length > 0) {
+            console.log(`[Search] Encontrados ${diariosData.processes_mentioned.length} processos nos Diários Oficiais`)
+            
+            // Buscar detalhes desses processos no cache
+            for (const cnjNumber of diariosData.processes_mentioned.slice(0, 10)) { // Limitar a 10
+              const { data: processData } = await supabaseClient
+                .from('processes')
+                .select('*')
+                .eq('cnj_number', cnjNumber)
+                .maybeSingle()
+              
+              if (processData) {
+                processes.push(processData as Process)
+              }
+            }
+            
+            if (processes.length > 0) {
+              usedDiariosOficiais = true
+              fromCache = false // Não é cache direto, mas é gratuito
+              console.log(`[Search] ${processes.length} processos carregados via Diários Oficiais`)
+            }
+          }
+        }
+      } catch (error) {
+        console.log('[Search] Diários Oficiais não disponível, continuando com APIs pagas:', error)
+      }
+    }
+
+    // 4. Se não encontrou nos Diários Oficiais, chamar APIs pagas
+    if (!fromCache && !usedDiariosOficiais) {
       // Obter configuração de APIs
       const { data: apiConfigs } = await supabaseClient
         .from('api_configurations')
@@ -154,7 +209,7 @@ serve(async (req) => {
         )
       }
 
-      // 4. Salvar/atualizar processos na tabela processes
+      // 5. Salvar/atualizar processos na tabela processes
       for (const process of processes) {
         await supabaseClient
           .from('processes')
@@ -175,19 +230,23 @@ serve(async (req) => {
       }
     }
 
-    // 5. Registrar busca em user_searches
+    // 6. Registrar busca em user_searches
+    const actualCost = fromCache || usedDiariosOficiais ? 0 : creditCost
+    
     await supabaseClient
       .from('user_searches')
       .insert({
         user_id: userId,
         search_type: searchType,
         search_value: searchValue,
-        credits_consumed: fromCache ? 0 : creditCost,
-        results_count: processes.length
+        credits_consumed: actualCost,
+        results_count: processes.length,
+        from_cache: fromCache,
+        api_used: usedDiariosOficiais ? 'escavador' : 'judit'
       })
 
-    // 6. Deduzir créditos (apenas se não foi cache)
-    if (!fromCache) {
+    // 7. Deduzir créditos (apenas se não foi cache nem diários oficiais)
+    if (!fromCache && !usedDiariosOficiais) {
       // Atualizar saldo
       await supabaseClient
         .from('credits_plans')
@@ -206,12 +265,13 @@ serve(async (req) => {
         })
     }
 
-    // 7. Retornar processos
+    // 8. Retornar processos
     return new Response(
       JSON.stringify({
         success: true,
         from_cache: fromCache,
-        credits_consumed: fromCache ? 0 : creditCost,
+        used_diarios_oficiais: usedDiariosOficiais,
+        credits_consumed: actualCost,
         results_count: processes.length,
         processes: processes
       }),

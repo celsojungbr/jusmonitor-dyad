@@ -24,4 +24,7 @@ export interface Busca {
   resultados: number
   data: Date
   loading?: boolean
+  fromCache?: boolean
+  creditsConsumed?: number
+  apiUsed?: 'judit' | 'escavador'
 }
