@@ -1,8 +1,10 @@
 import { SidebarProvider, Sidebar, SidebarContent, SidebarHeader, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarTrigger } from "@/components/ui/sidebar";
 import { Search, FileText, Bell, Key, CreditCard, User, Settings, LogOut } from "lucide-react";
-import { Outlet, Link, useLocation } from "react-router-dom";
+import { Outlet, Link, useLocation, useNavigate } from "react-router-dom";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { useAuth } from "@/shared/hooks/useAuth";
+import { useToast } from "@/hooks/use-toast";
 import logoTypo from "@/assets/logotype-black.png";
 import logoHorizontal from "@/assets/logo-horizontal-black.png";
 import avatarIcon from "@/assets/avatar-icon.png";
@@ -17,6 +19,41 @@ const navigation = [
 
 const DashboardLayout = () => {
   const location = useLocation();
+  const navigate = useNavigate();
+  const { toast } = useToast();
+  const { profile, signOut } = useAuth();
+
+  const handleSignOut = async () => {
+    try {
+      await signOut();
+      toast({
+        title: "Logout realizado",
+        description: "Até logo!",
+      });
+      navigate("/");
+    } catch (error) {
+      console.error("Erro ao fazer logout:", error);
+      toast({
+        title: "Erro",
+        description: "Não foi possível sair. Tente novamente.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Obter iniciais do nome
+  const getInitials = (name: string) => {
+    return name
+      .split(" ")
+      .map((n) => n[0])
+      .join("")
+      .toUpperCase()
+      .slice(0, 2);
+  };
+
+  const userName = profile?.full_name || "Usuário";
+  const userType = profile?.user_type === "lawyer" ? "Advogado" : profile?.user_type === "admin" ? "Administrador" : "Usuário";
+  const userInitials = getInitials(userName);
 
   return (
     <SidebarProvider>
@@ -56,12 +93,12 @@ const DashboardLayout = () => {
               <DropdownMenuTrigger asChild>
                 <button className="flex items-center gap-3 hover:opacity-80 transition-opacity">
                   <div className="text-right">
-                    <div className="text-sm font-medium">João Silva</div>
-                    <div className="text-xs text-muted-foreground">Advogado</div>
+                    <div className="text-sm font-medium">{userName}</div>
+                    <div className="text-xs text-muted-foreground">{userType}</div>
                   </div>
                   <Avatar>
-                    <AvatarImage src={avatarIcon} />
-                    <AvatarFallback>JS</AvatarFallback>
+                    <AvatarImage src={profile?.avatar_url || avatarIcon} />
+                    <AvatarFallback>{userInitials}</AvatarFallback>
                   </Avatar>
                 </button>
               </DropdownMenuTrigger>
@@ -75,7 +112,7 @@ const DashboardLayout = () => {
                   Configurações
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem className="text-destructive">
+                <DropdownMenuItem className="text-destructive" onClick={handleSignOut}>
                   <LogOut className="w-4 h-4 mr-2" />
                   Sair
                 </DropdownMenuItem>

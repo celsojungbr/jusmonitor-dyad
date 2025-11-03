@@ -94,13 +94,24 @@ export class AuthService {
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: `${window.location.origin}/auth/callback`
+        redirectTo: `${window.location.origin}/dashboard/consultas`
       }
     })
 
     if (error) throw error
 
     return data
+  }
+
+  static async signInWithOtp(email: string) {
+    const { error } = await supabase.auth.signInWithOtp({
+      email,
+      options: {
+        emailRedirectTo: `${window.location.origin}/dashboard/consultas`
+      }
+    })
+
+    if (error) throw error
   }
 
   // Listener para mudanças no estado de autenticação
