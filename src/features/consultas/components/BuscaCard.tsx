@@ -3,6 +3,8 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
+import { Switch } from "@/components/ui/switch"
+import { Label } from "@/components/ui/label"
 import { ChevronDown, ChevronUp, FileText, User, Scale } from "lucide-react"
 import { Busca } from "../types/consulta.types"
 import { ResultadosDetalhes } from "./ResultadosDetalhes"
@@ -15,6 +17,7 @@ interface BuscaCardProps {
 
 export const BuscaCard = ({ busca, processos = [] }: BuscaCardProps) => {
   const [isOpen, setIsOpen] = useState(false)
+  const [showOnlyActive, setShowOnlyActive] = useState(true)
 
   const getIcon = () => {
     switch (busca.tipo) {
@@ -45,6 +48,10 @@ export const BuscaCard = ({ busca, processos = [] }: BuscaCardProps) => {
     return 'Documento'
   }
 
+  const processosExibidos = showOnlyActive 
+    ? processos.filter(p => p.status?.toLowerCase() === 'ativo' || p.status?.toLowerCase() === 'active')
+    : processos
+
   return (
     <Collapsible open={isOpen} onOpenChange={setIsOpen}>
       <Card className="animate-fade-in">
@@ -66,7 +73,7 @@ export const BuscaCard = ({ busca, processos = [] }: BuscaCardProps) => {
                   
                   <div className="flex items-center gap-4 text-sm text-muted-foreground">
                     <span>
-                      <strong>{busca.resultados}</strong> {busca.resultados === 1 ? 'resultado' : 'resultados'}
+                      <strong>{showOnlyActive ? processosExibidos.length : busca.resultados}</strong> {(showOnlyActive ? processosExibidos.length : busca.resultados) === 1 ? 'resultado' : 'resultados'}
                     </span>
                     <span>•</span>
                     <span>
@@ -76,25 +83,38 @@ export const BuscaCard = ({ busca, processos = [] }: BuscaCardProps) => {
                 </div>
               </div>
 
-              <Button variant="ghost" size="sm">
-                {isOpen ? (
-                  <>
-                    <ChevronUp className="w-4 h-4 mr-2" />
-                    Ocultar
-                  </>
-                ) : (
-                  <>
-                    <ChevronDown className="w-4 h-4 mr-2" />
-                    Ver Detalhes
-                  </>
-                )}
-              </Button>
+              <div className="flex items-center gap-4 flex-wrap">
+                <div className="flex items-center gap-2">
+                  <Switch 
+                    id={`filter-${busca.id}`}
+                    checked={showOnlyActive}
+                    onCheckedChange={setShowOnlyActive}
+                  />
+                  <Label htmlFor={`filter-${busca.id}`} className="text-sm cursor-pointer">
+                    Apenas Ativos
+                  </Label>
+                </div>
+                
+                <Button variant="ghost" size="sm">
+                  {isOpen ? (
+                    <>
+                      <ChevronUp className="w-4 h-4 mr-2" />
+                      Ocultar
+                    </>
+                  ) : (
+                    <>
+                      <ChevronDown className="w-4 h-4 mr-2" />
+                      Ver Detalhes
+                    </>
+                  )}
+                </Button>
+              </div>
             </div>
           </CollapsibleTrigger>
 
           <CollapsibleContent className="pt-4">
             <div className="border-t pt-4 animate-accordion-down">
-              <ResultadosDetalhes processos={processos} />
+              <ResultadosDetalhes processos={processosExibidos} />
             </div>
           </CollapsibleContent>
         </CardContent>
