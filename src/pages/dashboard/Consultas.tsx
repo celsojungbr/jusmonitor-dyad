@@ -1,12 +1,15 @@
 import { useState } from "react"
 import { useToast } from "@/hooks/use-toast"
 import { ConsultasTabs } from "@/features/consultas/components/ConsultasTabs"
+import { HistoricoBuscas } from "@/features/consultas/components/HistoricoBuscas"
 import { ConsultaProcessualData, ConsultaCadastralData, ConsultaPenalData, Busca } from "@/features/consultas/types/consulta.types"
+import { Process } from "@/shared/types/database.types"
 
 const Consultas = () => {
   const { toast } = useToast()
   const [loading, setLoading] = useState(false)
   const [buscas, setBuscas] = useState<Busca[]>([])
+  const [processosCache, setProcessosCache] = useState<Record<string, Process[]>>({})
 
   const handleConsultaProcessual = async (data: ConsultaProcessualData) => {
     setLoading(true)
@@ -15,20 +18,42 @@ const Consultas = () => {
       console.log("Consulta Processual:", data)
       
       // Simular resposta para desenvolvimento
+      const buscaId = Date.now().toString()
+      const numResultados = Math.floor(Math.random() * 15) + 1
+      
       const novaBusca: Busca = {
-        id: Date.now().toString(),
+        id: buscaId,
         tipo: 'processual',
         tipoIdentificador: data.tipoIdentificador,
         valor: data.valor,
-        resultados: Math.floor(Math.random() * 20),
+        resultados: numResultados,
         data: new Date()
       }
       
+      // Simular processos encontrados
+      const processosMock: Process[] = Array.from({ length: numResultados }, (_, i) => ({
+        id: `${buscaId}-processo-${i}`,
+        cnj_number: `${String(i).padStart(7, '0')}-${Math.floor(Math.random() * 99)}.2024.8.26.${String(Math.floor(Math.random() * 9999)).padStart(4, '0')}`,
+        tribunal: ['TJ-SP', 'TJ-RJ', 'TJ-MG'][Math.floor(Math.random() * 3)],
+        distribution_date: new Date(2024, Math.floor(Math.random() * 12), Math.floor(Math.random() * 28) + 1).toISOString(),
+        status: ['Ativo', 'Arquivado', 'Suspenso'][Math.floor(Math.random() * 3)],
+        case_value: Math.random() * 100000,
+        judge_name: 'Dr. João Silva',
+        court_name: `${Math.floor(Math.random() * 50) + 1}ª Vara Cível`,
+        phase: ['Conhecimento', 'Execução', 'Recursal'][Math.floor(Math.random() * 3)],
+        author_names: ['João da Silva', 'Maria Santos'],
+        defendant_names: ['Empresa XYZ Ltda', 'José Oliveira'],
+        parties_cpf_cnpj: ['12345678900', '98765432100'],
+        last_update: new Date().toISOString(),
+        created_at: new Date().toISOString()
+      }))
+      
       setBuscas([novaBusca, ...buscas])
+      setProcessosCache(prev => ({ ...prev, [buscaId]: processosMock }))
       
       toast({
         title: "Busca realizada",
-        description: `Encontrados ${novaBusca.resultados} resultados`
+        description: `Encontrados ${novaBusca.resultados} processos`
       })
     } catch (error) {
       toast({
@@ -120,7 +145,12 @@ const Consultas = () => {
         loading={loading}
       />
 
-      {/* TODO: Fase B - Histórico de buscas será implementado aqui */}
+      {buscas.length > 0 && (
+        <HistoricoBuscas
+          buscas={buscas}
+          getProcessosByBusca={(buscaId) => processosCache[buscaId] || []}
+        />
+      )}
     </div>
   )
 }

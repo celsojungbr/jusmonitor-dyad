@@ -1,3 +1,7 @@
 export { ConsultaService } from './services/consultaService'
 export * from './types/consulta.types'
 export * from './components/ConsultasTabs'
+export * from './components/HistoricoBuscas'
+export * from './components/BuscaCard'
+export * from './components/ProcessoCard'
+export * from './components/ResultadosDetalhes'
