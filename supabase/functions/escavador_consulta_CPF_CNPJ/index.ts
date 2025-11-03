@@ -93,7 +93,7 @@ Deno.serve(async (req) => {
 
     // Montar URL do Escavador v2
     const escavadorUrl = new URL('https://api.escavador.com/api/v2/envolvido/processos')
-    escavadorUrl.searchParams.append('cpf_cnpj', normalizedDoc)
+    escavadorUrl.searchParams.append(docType, normalizedDoc)
     escavadorUrl.searchParams.append('ordem', 'desc')  // ordem: asc|desc
     escavadorUrl.searchParams.append('limit', '20')    // paginação opcional
 
@@ -151,6 +151,35 @@ Deno.serve(async (req) => {
       return new Response(
         JSON.stringify({ error: 'Você não possui saldo em crédito da API.' }),
         { status: 402, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    if (response.status === 422) {
+      const errorJson = await response.json().catch(() => null)
+      console.log('[Escavador CPF/CNPJ] 422 recebido:', errorJson)
+
+      // Registrar busca sem resultados para não travar UX
+      await supabase.from('user_searches').insert({
+        user_id: userId,
+        search_type: docType,
+        search_value: normalizedDoc,
+        credits_consumed: 0,
+        results_count: 0,
+        from_cache: false,
+        api_used: 'escavador'
+      })
+
+      return new Response(
+        JSON.stringify({
+          results_count: 0,
+          items: [],
+          envolvido_encontrado: null,
+          from_cache: false,
+          credits_consumed: 0,
+          provider: 'escavador_v2',
+          message: 'Parâmetros inválidos para a API Escavador. Verifique o documento enviado.'
+        }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
