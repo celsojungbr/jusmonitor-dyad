@@ -199,4 +199,95 @@ export class AdminApiService {
 
     return data
   }
+
+  static async checkApiBalance() {
+    const userId = await ApiClient.getCurrentUserId()
+    
+    return ApiClient.callEdgeFunction('check-api-balance', { userId })
+  }
+
+  static async getApiLogs(logType?: string, provider?: string, limit?: number) {
+    const userId = await ApiClient.getCurrentUserId()
+    
+    return ApiClient.callEdgeFunction('get-api-logs', { 
+      userId, 
+      logType, 
+      provider,
+      limit 
+    })
+  }
+
+  static async getAllProcesses() {
+    const { supabase } = await import('@/integrations/supabase/client')
+
+    const { data, error } = await supabase
+      .from('processes')
+      .select('*')
+      .order('last_update', { ascending: false })
+
+    if (error) throw error
+
+    return data
+  }
+
+  static async getProcessConsultations(processId: string) {
+    const { supabase } = await import('@/integrations/supabase/client')
+
+    const { data, error } = await supabase
+      .from('user_searches')
+      .select(`
+        *,
+        profile:profiles(full_name, email)
+      `)
+      .contains('metadata', { processId })
+      .order('created_at', { ascending: false })
+
+    if (error) throw error
+
+    return data
+  }
+
+  static async getAllTransactions() {
+    const { supabase } = await import('@/integrations/supabase/client')
+
+    const { data, error } = await supabase
+      .from('credit_transactions')
+      .select(`
+        *,
+        profile:profiles(full_name, email)
+      `)
+      .order('created_at', { ascending: false })
+
+    if (error) throw error
+
+    return data
+  }
+
+  static async updateUserCredits(userId: string, creditsAmount: number, description: string) {
+    const { supabase } = await import('@/integrations/supabase/client')
+
+    // Atualizar saldo
+    const { error: updateError } = await supabase
+      .from('credits_plans')
+      .update({ credits_balance: creditsAmount })
+      .eq('user_id', userId)
+
+    if (updateError) throw updateError
+
+    // Registrar transação
+    const { error: transactionError } = await supabase
+      .from('credit_transactions')
+      .insert({
+        user_id: userId,
+        transaction_type: 'purchase',
+        operation_type: 'admin_adjustment',
+        credits_amount: creditsAmount,
+        cost_in_reais: 0,
+        description
+      })
+
+    if (transactionError) throw transactionError
+
+    return { success: true }
+  }
 }

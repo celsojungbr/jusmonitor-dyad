@@ -1,9 +1,10 @@
 import { SidebarProvider, Sidebar, SidebarContent, SidebarHeader, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarTrigger } from "@/components/ui/sidebar";
-import { Search, Bell, Key, CreditCard, User, Settings, LogOut } from "lucide-react";
+import { Search, Bell, Key, CreditCard, User, Settings, LogOut, Shield } from "lucide-react";
 import { Outlet, Link, useLocation, useNavigate } from "react-router-dom";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/shared/hooks/useAuth";
+import { useAdmin } from "@/shared/hooks/useAdmin";
 import { useToast } from "@/hooks/use-toast";
 import logoTypo from "@/assets/logotype-black.png";
 import logoHorizontal from "@/assets/logo-horizontal-black.png";
@@ -21,6 +22,7 @@ const DashboardLayout = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { profile, signOut } = useAuth();
+  const { isAdmin } = useAdmin();
 
   const handleSignOut = async () => {
     try {
@@ -110,6 +112,15 @@ const DashboardLayout = () => {
                   <Settings className="w-4 h-4 mr-2" />
                   Configurações
                 </DropdownMenuItem>
+                {isAdmin && (
+                  <>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={() => navigate('/dashboard/admin')}>
+                      <Shield className="w-4 h-4 mr-2" />
+                      Painel Administrativo
+                    </DropdownMenuItem>
+                  </>
+                )}
                 <DropdownMenuSeparator />
                 <DropdownMenuItem className="text-destructive" onClick={handleSignOut}>
                   <LogOut className="w-4 h-4 mr-2" />
