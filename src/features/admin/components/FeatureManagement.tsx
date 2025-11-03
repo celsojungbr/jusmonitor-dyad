@@ -2,16 +2,29 @@ import { useState, useEffect } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Switch } from '@/components/ui/switch'
+import { Button } from '@/components/ui/button'
 import { useToast } from '@/hooks/use-toast'
 import { AdminApiService } from '../services/adminApiService'
 import { FEATURES_CONFIG } from '../config/featuresConfig'
 import { EdgeFunctionConfig } from '../types/feature.types'
-import { Loader2 } from 'lucide-react'
+import { Loader2, Trash2 } from 'lucide-react'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
 
 export const FeatureManagement = () => {
   const [configs, setConfigs] = useState<EdgeFunctionConfig[]>([])
   const [loading, setLoading] = useState(true)
   const [updating, setUpdating] = useState<string | null>(null)
+  const [deleting, setDeleting] = useState<string | null>(null)
   const { toast } = useToast()
 
   useEffect(() => {
@@ -87,6 +100,30 @@ export const FeatureManagement = () => {
       })
     } finally {
       setUpdating(null)
+    }
+  }
+
+  const handleDeleteFunction = async (functionName: string) => {
+    try {
+      setDeleting(functionName)
+      
+      await AdminApiService.deleteFeatureConfig(functionName)
+      
+      await loadConfigs()
+      
+      toast({
+        title: 'Sucesso',
+        description: 'Edge function removida com sucesso'
+      })
+    } catch (error) {
+      console.error('Erro ao excluir configuração:', error)
+      toast({
+        title: 'Erro',
+        description: 'Não foi possível remover a configuração',
+        variant: 'destructive'
+      })
+    } finally {
+      setDeleting(null)
     }
   }
 
@@ -174,6 +211,42 @@ export const FeatureManagement = () => {
                                   handleProviderToggle(func.functionName, provider.name, checked)
                                 }
                               />
+                              
+                              <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                                    disabled={deleting === func.functionName}
+                                  >
+                                    {deleting === func.functionName ? (
+                                      <Loader2 className="h-4 w-4 animate-spin" />
+                                    ) : (
+                                      <Trash2 className="h-4 w-4" />
+                                    )}
+                                  </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                  <AlertDialogHeader>
+                                    <AlertDialogTitle>Confirmar Exclusão</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                      Tem certeza que deseja excluir a configuração da edge function <strong>{func.displayName}</strong>?
+                                      <br /><br />
+                                      Esta ação não pode ser desfeita. A função ficará indisponível até ser reconfigurada.
+                                    </AlertDialogDescription>
+                                  </AlertDialogHeader>
+                                  <AlertDialogFooter>
+                                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                    <AlertDialogAction
+                                      onClick={() => handleDeleteFunction(func.functionName)}
+                                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                    >
+                                      Excluir
+                                    </AlertDialogAction>
+                                  </AlertDialogFooter>
+                                </AlertDialogContent>
+                              </AlertDialog>
                             </div>
                           </div>
                         )

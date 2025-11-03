@@ -1,12 +1,14 @@
 import { useEffect, useState } from "react"
 import { AdminApiService, FeatureManagement } from "@/features/admin"
 import { useToast } from "@/hooks/use-toast"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { RefreshCw, Activity, AlertCircle } from "lucide-react"
+import { Input } from "@/components/ui/input"
+import { RefreshCw, Activity, AlertCircle, Loader2, Search } from "lucide-react"
 import { AdminTable } from "@/components/admin/AdminTable"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { supabase } from "@/integrations/supabase/client"
 
 const AdminApis = () => {
   const [balances, setBalances] = useState<any>(null)
@@ -15,6 +17,9 @@ const AdminApis = () => {
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
   const [logsLoading, setLogsLoading] = useState(false)
+  const [manualRequestId, setManualRequestId] = useState('')
+  const [requestStatus, setRequestStatus] = useState<any>(null)
+  const [checkingRequest, setCheckingRequest] = useState(false)
   const { toast } = useToast()
 
   useEffect(() => {
@@ -74,6 +79,43 @@ const AdminApis = () => {
       })
     } finally {
       setRefreshing(false)
+    }
+  }
+
+  const checkRequestStatus = async () => {
+    if (!manualRequestId.trim()) {
+      toast({
+        title: "Request ID necessário",
+        description: "Digite um Request ID para verificar",
+        variant: "destructive"
+      })
+      return
+    }
+
+    setCheckingRequest(true)
+    setRequestStatus(null)
+    
+    try {
+      const response = await supabase.functions.invoke('check-judit-request-status', {
+        body: { requestId: manualRequestId.trim() }
+      })
+      
+      if (response.error) throw response.error
+      
+      setRequestStatus(response.data)
+      toast({
+        title: "Status obtido com sucesso",
+        description: `Status: ${response.data.status}`
+      })
+    } catch (error) {
+      console.error('Erro ao verificar request:', error)
+      toast({
+        title: "Erro ao verificar request",
+        description: error instanceof Error ? error.message : "Erro desconhecido",
+        variant: "destructive"
+      })
+    } finally {
+      setCheckingRequest(false)
     }
   }
 
@@ -264,6 +306,70 @@ const AdminApis = () => {
           </CardContent>
         </Card>
       </div>
+
+      {/* Verificação Manual de Request JUDiT */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Verificar Request JUDiT</CardTitle>
+          <CardDescription>
+            Consulte o status de um request específico da JUDiT API
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex gap-2">
+            <Input
+              placeholder="Request ID (ex: 302a1107-4b63-455a-a605-beb23c0b6b7b)"
+              value={manualRequestId}
+              onChange={(e) => setManualRequestId(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && checkRequestStatus()}
+            />
+            <Button onClick={checkRequestStatus} disabled={checkingRequest}>
+              {checkingRequest ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Search className="h-4 w-4" />
+              )}
+            </Button>
+          </div>
+          
+          {requestStatus && (
+            <div className="p-4 rounded-lg bg-muted space-y-2">
+              <div className="flex justify-between items-center">
+                <span className="font-semibold">Status:</span>
+                <Badge variant={requestStatus.status === 'completed' ? 'default' : 'secondary'}>
+                  {requestStatus.status}
+                </Badge>
+              </div>
+              <div className="flex justify-between">
+                <span className="font-semibold">Request ID:</span>
+                <span className="text-sm font-mono">{requestStatus.request_id}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="font-semibold">Criado em:</span>
+                <span className="text-sm">{new Date(requestStatus.created_at).toLocaleString('pt-BR')}</span>
+              </div>
+              {requestStatus.completed_at && (
+                <div className="flex justify-between">
+                  <span className="font-semibold">Completado em:</span>
+                  <span className="text-sm">{new Date(requestStatus.completed_at).toLocaleString('pt-BR')}</span>
+                </div>
+              )}
+              <div className="flex justify-between">
+                <span className="font-semibold">Resultados:</span>
+                <span className="font-bold">{requestStatus.results_count}</span>
+              </div>
+              {requestStatus.results && requestStatus.results_count > 0 && (
+                <div className="mt-4 p-3 bg-background rounded border">
+                  <div className="text-sm font-semibold mb-2">Detalhes dos Resultados:</div>
+                  <pre className="text-xs overflow-auto max-h-40">
+                    {JSON.stringify(requestStatus.results, null, 2)}
+                  </pre>
+                </div>
+              )}
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
         <Tabs defaultValue="configs" className="w-full">
           <TabsList>

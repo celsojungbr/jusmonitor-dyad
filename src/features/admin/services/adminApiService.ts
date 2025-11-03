@@ -227,6 +227,13 @@ export class AdminApiService {
   ) {
     const { supabase } = await import('@/integrations/supabase/client')
     
+    // Buscar config anterior para log
+    const { data: oldConfig } = await supabase
+      .from('edge_function_config')
+      .select('*')
+      .eq('function_name', functionName)
+      .single()
+    
     const { data, error } = await supabase
       .from('edge_function_config')
       .update({
@@ -241,7 +248,54 @@ export class AdminApiService {
       .single()
     
     if (error) throw error
+
+    // Registrar mudança no system_logs
+    const { data: { user } } = await supabase.auth.getUser()
+    
+    await supabase
+      .from('system_logs')
+      .insert({
+        user_id: user?.id,
+        log_type: 'admin_action',
+        action: 'update_edge_function_config',
+        metadata: {
+          function_name: functionName,
+          old_status: oldConfig?.status,
+          new_status: status,
+          old_enabled_apis: oldConfig?.enabled_apis,
+          new_enabled_apis: enabledApis,
+          old_api_priority: oldConfig?.api_priority,
+          new_api_priority: apiPriority
+        }
+      })
+    
     return data
+  }
+
+  static async deleteFeatureConfig(functionName: string) {
+    const { supabase } = await import('@/integrations/supabase/client')
+    
+    // Registrar exclusão no system_logs antes de excluir
+    const { data: { user } } = await supabase.auth.getUser()
+    
+    await supabase
+      .from('system_logs')
+      .insert({
+        user_id: user?.id,
+        log_type: 'admin_action',
+        action: 'delete_edge_function_config',
+        metadata: {
+          function_name: functionName
+        }
+      })
+    
+    const { error } = await supabase
+      .from('edge_function_config')
+      .delete()
+      .eq('function_name', functionName)
+    
+    if (error) throw error
+    return { success: true }
   }
 
   static async getApiLogs(logType?: string, provider?: string, limit?: number) {
