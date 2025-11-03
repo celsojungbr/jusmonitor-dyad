@@ -7,6 +7,8 @@ import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { AdminRoute } from "@/components/AdminRoute";
 import Landing from "./pages/Landing";
 import Auth from "./pages/Auth";
+import Precos from "./pages/Precos";
+import Sobre from "./pages/Sobre";
 import DashboardLayout from "./pages/dashboard/DashboardLayout";
 import Consultas from "./pages/dashboard/Consultas";
 import { ProcessoDetalhes } from "@/features/processos/components/ProcessoDetalhes";
@@ -33,6 +35,8 @@ const App = () => (
         <Routes>
           <Route path="/" element={<Landing />} />
           <Route path="/auth" element={<Auth />} />
+          <Route path="/precos" element={<Precos />} />
+          <Route path="/sobre" element={<Sobre />} />
           <Route path="/dashboard" element={
             <ProtectedRoute>
               <DashboardLayout />

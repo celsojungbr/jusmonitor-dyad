@@ -3,13 +3,16 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Search, Shield, Bell, FileText, Zap, TrendingUp, Users, Star, Check } from "lucide-react";
 import { Link } from "react-router-dom";
+import Header from "@/components/Header";
 import logoHorizontal from "@/assets/logo-horizontal-white.png";
 
 const Landing = () => {
   return (
     <div className="min-h-screen bg-background">
+      <Header />
+
       {/* Hero Section */}
-      <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
+      <section className="relative min-h-screen flex items-center justify-center overflow-hidden pt-16">
         {/* Video Background */}
         <video
           autoPlay
@@ -32,62 +35,53 @@ const Landing = () => {
 
         {/* Content */}
         <div className="relative z-10 container mx-auto px-4 text-center">
-          <div className="mb-8 animate-fade-in">
-            <img
-              src={logoHorizontal}
-              alt="JusMonitor"
-              className="h-20 mx-auto mb-8 drop-shadow-2xl"
-            />
-          </div>
-
-          <Badge className="mb-6 px-4 py-2 text-sm animate-fade-in-up">
-            🚀 Plataforma de Monitoramento Judicial Inteligente
+          <Badge className="mb-6 px-4 py-2 text-xs animate-fade-in-up border-primary/20 bg-primary/5">
+            Plataforma de Monitoramento Judicial com IA
           </Badge>
 
-          <h1 className="text-5xl md:text-7xl lg:text-8xl font-bold mb-6 text-foreground animate-fade-in-up leading-tight">
-            Monitore Processos
+          <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-6 text-foreground animate-fade-in-up leading-tight max-w-4xl mx-auto">
+            Monitore Processos com
             <br />
             <span className="text-primary bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
-              com Inteligência
+              Inteligência Artificial
             </span>
           </h1>
 
-          <p className="text-xl md:text-2xl text-muted-foreground mb-12 max-w-3xl mx-auto animate-fade-in-up leading-relaxed">
-            Consulte, acompanhe e baixe processos judiciais de forma simples e automatizada.
-            <br />
-            Receba alertas em tempo real sobre movimentações processuais.
+          <p className="text-base md:text-lg text-muted-foreground mb-10 max-w-2xl mx-auto animate-fade-in-up leading-relaxed">
+            Consulte, acompanhe e gerencie processos judiciais de forma automatizada.
+            Receba alertas em tempo real sobre movimentações processuais importantes.
           </p>
 
-          <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12 animate-fade-in-up">
-            <Button asChild size="lg" className="text-lg h-14 px-10 shadow-lg hover:shadow-xl transition-all">
+          <div className="flex flex-col sm:flex-row gap-4 justify-center mb-16 animate-fade-in-up">
+            <Button asChild size="lg" className="h-12 px-8 shadow-lg hover:shadow-xl transition-all">
               <Link to="/auth">
-                Começar Gratuitamente
+                Começar Teste Gratuito
               </Link>
             </Button>
-            <Button asChild variant="outline" size="lg" className="text-lg h-14 px-10 border-2 hover:bg-secondary">
+            <Button asChild variant="outline" size="lg" className="h-12 px-8 border-2 hover:bg-secondary">
               <Link to="/auth">
-                Fazer Login
+                Acessar Conta
               </Link>
             </Button>
           </div>
 
           {/* Stats */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 max-w-4xl mx-auto mt-16 animate-fade-in-up">
-            <div className="bg-card/50 backdrop-blur-sm border rounded-lg p-6">
-              <div className="text-3xl md:text-4xl font-bold text-primary mb-2">1000+</div>
-              <div className="text-sm text-muted-foreground">Processos Monitorados</div>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-4xl mx-auto animate-fade-in-up">
+            <div className="bg-card/30 backdrop-blur-sm border border-primary/10 rounded-lg p-5">
+              <div className="text-2xl md:text-3xl font-bold text-primary mb-1">1000+</div>
+              <div className="text-xs text-muted-foreground">Processos Monitorados</div>
             </div>
-            <div className="bg-card/50 backdrop-blur-sm border rounded-lg p-6">
-              <div className="text-3xl md:text-4xl font-bold text-primary mb-2">99.9%</div>
-              <div className="text-sm text-muted-foreground">Uptime Garantido</div>
+            <div className="bg-card/30 backdrop-blur-sm border border-primary/10 rounded-lg p-5">
+              <div className="text-2xl md:text-3xl font-bold text-primary mb-1">99.9%</div>
+              <div className="text-xs text-muted-foreground">Uptime Garantido</div>
             </div>
-            <div className="bg-card/50 backdrop-blur-sm border rounded-lg p-6">
-              <div className="text-3xl md:text-4xl font-bold text-primary mb-2">24/7</div>
-              <div className="text-sm text-muted-foreground">Monitoramento Ativo</div>
+            <div className="bg-card/30 backdrop-blur-sm border border-primary/10 rounded-lg p-5">
+              <div className="text-2xl md:text-3xl font-bold text-primary mb-1">24/7</div>
+              <div className="text-xs text-muted-foreground">Monitoramento Ativo</div>
             </div>
-            <div className="bg-card/50 backdrop-blur-sm border rounded-lg p-6">
-              <div className="text-3xl md:text-4xl font-bold text-primary mb-2">500+</div>
-              <div className="text-sm text-muted-foreground">Advogados Ativos</div>
+            <div className="bg-card/30 backdrop-blur-sm border border-primary/10 rounded-lg p-5">
+              <div className="text-2xl md:text-3xl font-bold text-primary mb-1">500+</div>
+              <div className="text-xs text-muted-foreground">Advogados Ativos</div>
             </div>
           </div>
         </div>
@@ -101,14 +95,14 @@ const Landing = () => {
       </section>
 
       {/* Features Section */}
-      <section className="py-24 bg-gradient-to-b from-background to-secondary/30">
+      <section className="py-20 bg-gradient-to-b from-background to-secondary/30">
         <div className="container mx-auto px-4">
-          <div className="text-center mb-16">
-            <Badge className="mb-4">Recursos Poderosos</Badge>
-            <h2 className="text-4xl md:text-5xl font-bold mb-4">
+          <div className="text-center mb-12">
+            <Badge className="mb-4 border-primary/20 bg-primary/5">Recursos Principais</Badge>
+            <h2 className="text-3xl md:text-4xl font-bold mb-4">
               Tudo que você precisa em uma plataforma
             </h2>
-            <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
+            <p className="text-base text-muted-foreground max-w-2xl mx-auto">
               Ferramentas profissionais para otimizar seu trabalho jurídico
             </p>
           </div>
@@ -174,45 +168,45 @@ const Landing = () => {
       </section>
 
       {/* How it Works Section */}
-      <section className="py-24 bg-secondary/30">
+      <section className="py-20 bg-secondary/30">
         <div className="container mx-auto px-4">
-          <div className="text-center mb-16">
-            <Badge className="mb-4">Processo Simples</Badge>
-            <h2 className="text-4xl md:text-5xl font-bold mb-4">
+          <div className="text-center mb-12">
+            <Badge className="mb-4 border-primary/20 bg-primary/5">Processo Simples</Badge>
+            <h2 className="text-3xl md:text-4xl font-bold mb-4">
               Como Funciona
             </h2>
-            <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
+            <p className="text-base text-muted-foreground max-w-2xl mx-auto">
               Comece a monitorar seus processos em minutos
             </p>
           </div>
 
           <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
             <div className="text-center">
-              <div className="w-16 h-16 bg-primary rounded-full flex items-center justify-center text-2xl font-bold text-primary-foreground mb-6 mx-auto shadow-lg">
+              <div className="w-14 h-14 bg-primary rounded-full flex items-center justify-center text-xl font-bold text-primary-foreground mb-5 mx-auto shadow-lg">
                 1
               </div>
-              <h3 className="text-2xl font-bold mb-4">Cadastre-se</h3>
-              <p className="text-muted-foreground text-lg">
+              <h3 className="text-xl font-bold mb-3">Cadastre-se</h3>
+              <p className="text-muted-foreground text-sm">
                 Crie sua conta gratuitamente em menos de 2 minutos
               </p>
             </div>
 
             <div className="text-center">
-              <div className="w-16 h-16 bg-primary rounded-full flex items-center justify-center text-2xl font-bold text-primary-foreground mb-6 mx-auto shadow-lg">
+              <div className="w-14 h-14 bg-primary rounded-full flex items-center justify-center text-xl font-bold text-primary-foreground mb-5 mx-auto shadow-lg">
                 2
               </div>
-              <h3 className="text-2xl font-bold mb-4">Configure</h3>
-              <p className="text-muted-foreground text-lg">
+              <h3 className="text-xl font-bold mb-3">Configure</h3>
+              <p className="text-muted-foreground text-sm">
                 Adicione os processos que deseja monitorar
               </p>
             </div>
 
             <div className="text-center">
-              <div className="w-16 h-16 bg-primary rounded-full flex items-center justify-center text-2xl font-bold text-primary-foreground mb-6 mx-auto shadow-lg">
+              <div className="w-14 h-14 bg-primary rounded-full flex items-center justify-center text-xl font-bold text-primary-foreground mb-5 mx-auto shadow-lg">
                 3
               </div>
-              <h3 className="text-2xl font-bold mb-4">Monitore</h3>
-              <p className="text-muted-foreground text-lg">
+              <h3 className="text-xl font-bold mb-3">Monitore</h3>
+              <p className="text-muted-foreground text-sm">
                 Receba alertas automáticos de todas as movimentações
               </p>
             </div>
@@ -221,12 +215,12 @@ const Landing = () => {
       </section>
 
       {/* Benefits Section */}
-      <section className="py-24">
+      <section className="py-20">
         <div className="container mx-auto px-4">
           <div className="grid md:grid-cols-2 gap-12 items-center max-w-6xl mx-auto">
             <div>
-              <Badge className="mb-4">Vantagens</Badge>
-              <h2 className="text-4xl md:text-5xl font-bold mb-6">
+              <Badge className="mb-4 border-primary/20 bg-primary/5">Vantagens</Badge>
+              <h2 className="text-3xl md:text-4xl font-bold mb-6">
                 Por que escolher o JusMonitor?
               </h2>
               <div className="space-y-6">
@@ -322,11 +316,11 @@ const Landing = () => {
       </section>
 
       {/* Testimonials */}
-      <section className="py-24 bg-secondary/30">
+      <section className="py-20 bg-secondary/30">
         <div className="container mx-auto px-4">
-          <div className="text-center mb-16">
-            <Badge className="mb-4">Depoimentos</Badge>
-            <h2 className="text-4xl md:text-5xl font-bold mb-4">
+          <div className="text-center mb-12">
+            <Badge className="mb-4 border-primary/20 bg-primary/5">Depoimentos</Badge>
+            <h2 className="text-3xl md:text-4xl font-bold mb-4">
               O que nossos clientes dizem
             </h2>
           </div>
@@ -387,23 +381,23 @@ const Landing = () => {
       </section>
 
       {/* CTA Section */}
-      <section className="py-24 relative overflow-hidden">
+      <section className="py-20 relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-r from-primary/10 via-primary/5 to-primary/10" />
         <div className="container mx-auto px-4 relative z-10">
           <div className="max-w-4xl mx-auto text-center">
-            <h2 className="text-4xl md:text-6xl font-bold mb-6">
+            <h2 className="text-3xl md:text-4xl font-bold mb-6">
               Pronto para começar?
             </h2>
-            <p className="text-xl md:text-2xl text-muted-foreground mb-10">
+            <p className="text-base md:text-lg text-muted-foreground mb-10">
               Junte-se a centenas de advogados que já otimizaram seu trabalho
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Button asChild size="lg" className="text-lg h-14 px-10 shadow-lg hover:shadow-xl">
+              <Button asChild size="lg" className="h-12 px-8 shadow-lg hover:shadow-xl">
                 <Link to="/auth">
                   Criar Conta Gratuita
                 </Link>
               </Button>
-              <Button asChild variant="outline" size="lg" className="text-lg h-14 px-10 border-2">
+              <Button asChild variant="outline" size="lg" className="h-12 px-8 border-2">
                 <Link to="/auth">
                   Ver Demonstração
                 </Link>
