@@ -8,7 +8,7 @@ import Landing from "./pages/Landing";
 import Auth from "./pages/Auth";
 import DashboardLayout from "./pages/dashboard/DashboardLayout";
 import Consultas from "./pages/dashboard/Consultas";
-import Processos from "./pages/dashboard/Processos";
+import { ProcessoDetalhes } from "@/features/processos/components/ProcessoDetalhes";
 import Monitoramentos from "./pages/dashboard/Monitoramentos";
 import Senhas from "./pages/dashboard/Senhas";
 import Planos from "./pages/dashboard/Planos";
@@ -31,7 +31,7 @@ const App = () => (
             </ProtectedRoute>
           }>
             <Route path="consultas" element={<Consultas />} />
-            <Route path="processos" element={<Processos />} />
+            <Route path="processo/:cnjNumber" element={<ProcessoDetalhes />} />
             <Route path="monitoramentos" element={<Monitoramentos />} />
             <Route path="senhas" element={<Senhas />} />
             <Route path="planos" element={<Planos />} />
