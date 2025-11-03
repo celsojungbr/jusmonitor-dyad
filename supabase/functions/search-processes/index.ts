@@ -421,50 +421,37 @@ async function callEscavadorAPI(
   console.log(`[Escavador] Iniciando busca: ${searchType} = ${searchValue}`)
 
   let endpoint: string
-  let method = 'POST'
-  let requestBody: any = {}
+  let method = 'GET'
 
-  // Selecionar endpoint correto baseado no tipo de busca
-  // Escavador usa endpoints diretos (síncronos)
+  // Selecionar endpoint correto baseado no tipo de busca (GET com query params)
   if (searchType === 'cnj') {
-    // Busca por número de processo
-    endpoint = `${baseUrl}/v1/processos/${searchValue}`
-    method = 'GET'
-    requestBody = {}
+    // Busca por número de processo (GET direto)
+    endpoint = `${baseUrl}/v1/processos/${encodeURIComponent(searchValue)}`
   } else if (searchType === 'cpf' || searchType === 'cnpj') {
-    // Busca por CPF/CNPJ - buscar pessoa primeiro
-    endpoint = `${baseUrl}/v1/pessoas`
-    requestBody = {
-      q: searchValue,
-      qo: searchType === 'cpf' ? 'cpf' : 'cnpj'
-    }
+    // Busca por CPF/CNPJ - Escavador exige GET com querystring
+    const qo = searchType === 'cpf' ? 'cpf' : 'cnpj'
+    const qs = new URLSearchParams({ q: searchValue, qo }).toString()
+    endpoint = `${baseUrl}/v1/pessoas?${qs}`
   } else if (searchType === 'oab') {
     // Busca por OAB
     const oabMatch = searchValue.match(/^(\d+)\/?([A-Z]{2})?$/)
     const oabNumber = oabMatch ? oabMatch[1] : searchValue
     const oabUF = oabMatch && oabMatch[2] ? oabMatch[2] : 'SP'
+    const qs = new URLSearchParams({ q: oabNumber, qo: 'oab', uf: oabUF }).toString()
 
-    endpoint = `${baseUrl}/v1/advogados`
-    requestBody = {
-      q: oabNumber,
-      qo: 'oab',
-      uf: oabUF
-    }
+    endpoint = `${baseUrl}/v1/advogados?${qs}`
   } else {
     throw new Error(`Tipo de busca não suportado pelo Escavador: ${searchType}`)
   }
 
   console.log(`[Escavador] Endpoint: ${endpoint}`)
-  console.log(`[Escavador] Request body:`, JSON.stringify(requestBody))
 
   const response = await fetch(endpoint, {
     method,
     headers: {
       'Authorization': `Token ${apiKey}`,
-      'Content-Type': 'application/json',
       'Accept': 'application/json'
-    },
-    body: method === 'POST' ? JSON.stringify(requestBody) : undefined
+    }
   })
 
   if (!response.ok) {
