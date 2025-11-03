@@ -16,12 +16,18 @@ const Consultas = () => {
 
   const handleConsultaProcessual = async (data: ConsultaProcessualData) => {
     setLoading(true)
+    
+    // Timeout de 30 segundos
+    const timeoutPromise = new Promise((_, reject) => {
+      setTimeout(() => reject(new Error('Timeout: A busca demorou mais de 30 segundos')), 30000)
+    })
+    
     try {
-      // Chamar API real via ConsultaService
-      const response = await ConsultaService.searchProcesses(
-        data.tipoIdentificador,
-        data.valor
-      )
+      // Chamar API real via ConsultaService com timeout
+      const response = await Promise.race([
+        ConsultaService.searchProcesses(data.tipoIdentificador, data.valor),
+        timeoutPromise
+      ]) as any
       
       const buscaId = Date.now().toString()
       
@@ -46,6 +52,16 @@ const Consultas = () => {
       })
     } catch (error: any) {
       console.error('Erro na consulta processual:', error)
+      
+      // Tratar timeout
+      if (error.message?.includes('Timeout')) {
+        toast({
+          title: "Timeout na busca",
+          description: "A busca demorou muito tempo. Tente novamente ou entre em contato com o suporte.",
+          variant: "destructive"
+        })
+        return
+      }
       
       // Tratar 404 como "nenhum processo encontrado" em vez de erro
       if (error.status === 404 || error.message?.includes('No processes found')) {
