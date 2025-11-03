@@ -44,13 +44,37 @@ const Consultas = () => {
         title: response.from_cache ? "Busca (cache)" : "Busca realizada",
         description: `${response.results_count} processo(s) encontrado(s) • ${response.credits_consumed} crédito(s) consumido(s)`,
       })
-    } catch (error) {
+    } catch (error: any) {
       console.error('Erro na consulta processual:', error)
-      toast({
-        title: "Erro na busca",
-        description: error instanceof Error ? error.message : "Não foi possível realizar a consulta",
-        variant: "destructive"
-      })
+      
+      // Tratar 404 como "nenhum processo encontrado" em vez de erro
+      if (error.status === 404 || error.message?.includes('No processes found')) {
+        const buscaId = Date.now().toString()
+        const novaBusca: Busca = {
+          id: buscaId,
+          tipo: 'processual',
+          tipoIdentificador: data.tipoIdentificador,
+          valor: data.valor,
+          resultados: 0,
+          data: new Date(),
+          fromCache: false,
+          creditsConsumed: 0,
+          apiUsed: 'judit'
+        }
+        setBuscas([novaBusca, ...buscas])
+        setProcessosCache(prev => ({ ...prev, [buscaId]: [] }))
+        
+        toast({
+          title: "Nenhum processo encontrado",
+          description: "Não foram encontrados processos para este identificador",
+        })
+      } else {
+        toast({
+          title: "Erro na busca",
+          description: error instanceof Error ? error.message : "Não foi possível realizar a consulta",
+          variant: "destructive"
+        })
+      }
     } finally {
       setLoading(false)
     }

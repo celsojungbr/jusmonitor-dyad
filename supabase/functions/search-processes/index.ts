@@ -304,14 +304,14 @@ async function callJuditAPI(
   // Selecionar endpoint correto baseado no tipo de busca
   if (searchType === 'cnj') {
     // Busca por número CNJ - usar endpoint de requisições
-    endpoint = `${baseUrl}/requests/requests`
+    endpoint = `${baseUrl}/v1/requests`
     requestBody = {
       cnj_number: searchValue,
       cache: true // IMPORTANTE: usar cache quando disponível
     }
   } else if (searchType === 'cpf' || searchType === 'cnpj') {
     // Busca por documento - usar endpoint request-document
-    endpoint = `${baseUrl}/requests/request-document`
+    endpoint = `${baseUrl}/v1/request-document`
     requestBody = {
       document: searchValue,
       document_type: searchType === 'cpf' ? 'CPF' : 'CNPJ',
@@ -324,10 +324,9 @@ async function callJuditAPI(
     const oabNumber = oabMatch ? oabMatch[1] : searchValue
     const oabUF = oabMatch && oabMatch[2] ? oabMatch[2] : 'SP' // Default SP se não especificado
 
-    endpoint = `${baseUrl}/requests/request-document`
+    endpoint = `${baseUrl}/v1/request-name`
     requestBody = {
-      oab_number: oabNumber,
-      oab_state: oabUF,
+      name: `OAB ${oabUF} ${oabNumber}`,
       cache: true
     }
   } else {
@@ -426,29 +425,29 @@ async function callEscavadorAPI(
   let requestBody: any = {}
 
   // Selecionar endpoint correto baseado no tipo de busca
-  // Escavador usa busca assíncrona que é mais econômica
+  // Escavador usa endpoints diretos (síncronos)
   if (searchType === 'cnj') {
-    // Busca por número de processo (assíncrona)
-    endpoint = `${baseUrl}/v1/pesquisas/processo`
-    requestBody = {
-      numero_processo: searchValue
-    }
+    // Busca por número de processo
+    endpoint = `${baseUrl}/v1/processos/${searchValue}`
+    method = 'GET'
+    requestBody = {}
   } else if (searchType === 'cpf' || searchType === 'cnpj') {
-    // Busca por CPF/CNPJ (assíncrona)
-    endpoint = `${baseUrl}/v1/pesquisas/cpf-cnpj`
+    // Busca por CPF/CNPJ - buscar pessoa primeiro
+    endpoint = `${baseUrl}/v1/pessoas`
     requestBody = {
-      cpf_cnpj: searchValue
+      q: searchValue,
+      qo: searchType === 'cpf' ? 'cpf' : 'cnpj'
     }
   } else if (searchType === 'oab') {
-    // Busca por OAB (assíncrona)
-    // Extrair número e UF se formato "123456/SP"
+    // Busca por OAB
     const oabMatch = searchValue.match(/^(\d+)\/?([A-Z]{2})?$/)
     const oabNumber = oabMatch ? oabMatch[1] : searchValue
     const oabUF = oabMatch && oabMatch[2] ? oabMatch[2] : 'SP'
 
-    endpoint = `${baseUrl}/v1/pesquisas/oab`
+    endpoint = `${baseUrl}/v1/advogados`
     requestBody = {
-      oab: oabNumber,
+      q: oabNumber,
+      qo: 'oab',
       uf: oabUF
     }
   } else {
@@ -458,90 +457,53 @@ async function callEscavadorAPI(
   console.log(`[Escavador] Endpoint: ${endpoint}`)
   console.log(`[Escavador] Request body:`, JSON.stringify(requestBody))
 
-  // Iniciar busca assíncrona
-  const searchResponse = await fetch(endpoint, {
-    method: 'POST',
+  const response = await fetch(endpoint, {
+    method,
     headers: {
       'Authorization': `Token ${apiKey}`,
       'Content-Type': 'application/json',
       'Accept': 'application/json'
     },
-    body: JSON.stringify(requestBody)
+    body: method === 'POST' ? JSON.stringify(requestBody) : undefined
   })
 
-  if (!searchResponse.ok) {
-    const errorText = await searchResponse.text()
-    console.error(`[Escavador] API error ${searchResponse.status}:`, errorText)
-    throw new Error(`Escavador API error: ${searchResponse.status} - ${errorText}`)
+  if (!response.ok) {
+    const errorText = await response.text()
+    console.error(`[Escavador] API error ${response.status}:`, errorText)
+    throw new Error(`Escavador API error: ${response.status} - ${errorText}`)
   }
 
-  const searchData = await searchResponse.json()
-  console.log(`[Escavador] Busca iniciada:`, JSON.stringify(searchData))
+  const data = await response.json()
+  console.log(`[Escavador] Response:`, JSON.stringify(data).substring(0, 200))
 
-  // Escavador retorna um ID de busca assíncrona
-  const searchId = searchData.id || searchData.busca_id || searchData.search_id
-
-  if (!searchId) {
-    console.error(`[Escavador] ID de busca não encontrado na resposta`)
-    throw new Error('Escavador: ID de busca não retornado')
+  // Processar resposta do Escavador
+  let processes = []
+  
+  // A resposta pode conter processos em diferentes estruturas
+  if (data.results && Array.isArray(data.results)) {
+    processes = data.results
+  } else if (data.data && Array.isArray(data.data)) {
+    processes = data.data
+  } else if (data.processos && Array.isArray(data.processos)) {
+    processes = data.processos
+  } else if (Array.isArray(data)) {
+    processes = data
   }
 
-  // Aguardar resultado (com retry)
-  const maxAttempts = 10
-  const retryDelay = 2000 // 2 segundos
+  console.log(`[Escavador] Processos encontrados: ${processes.length}`)
 
-  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-    console.log(`[Escavador] Tentativa ${attempt}/${maxAttempts} - Consultando resultado...`)
-
-    // Aguardar antes de consultar
-    await new Promise(resolve => setTimeout(resolve, retryDelay))
-
-    const resultResponse = await fetch(`${baseUrl}/v1/buscas-assincronas/${searchId}`, {
-      method: 'GET',
-      headers: {
-        'Authorization': `Token ${apiKey}`,
-        'Accept': 'application/json'
-      }
-    })
-
-    if (!resultResponse.ok) {
-      console.error(`[Escavador] Erro ao consultar resultado: ${resultResponse.status}`)
-      continue
-    }
-
-    const resultData = await resultResponse.json()
-    const status = resultData.status || resultData.situacao
-
-    console.log(`[Escavador] Status da busca: ${status}`)
-
-    if (status === 'completed' || status === 'concluida' || status === 'finalizada') {
-      // Busca concluída, processar resultados
-      const processes = resultData.processos || resultData.results || resultData.data || []
-
-      console.log(`[Escavador] Processos encontrados: ${processes.length}`)
-
-      // Transformar resposta do Escavador para formato padronizado
-      return processes.map((proc: any) => ({
-        cnj_number: proc.numero_processo || proc.cnj || proc.numero_cnj || '',
-        tribunal: proc.tribunal || proc.court || '',
-        distribution_date: proc.data_inicio || proc.data_distribuicao || proc.distribution_date || null,
-        status: proc.status || proc.situacao || 'Em andamento',
-        case_value: parseFloat(proc.valor || proc.valor_causa || proc.case_value || 0),
-        judge_name: proc.juiz || proc.judge || '',
-        court_name: proc.comarca || proc.vara || proc.court_name || '',
-        phase: proc.instancia || proc.fase || proc.instance || '',
-        author_names: extractNames(proc.partes_ativas || proc.authors || proc.plaintiffs || []),
-        defendant_names: extractNames(proc.partes_passivas || proc.defendants || []),
-        parties_cpf_cnpj: extractDocuments(proc.partes || proc.parties || [])
-      }))
-    } else if (status === 'error' || status === 'erro' || status === 'failed') {
-      throw new Error(`Escavador: Busca falhou - ${resultData.erro || resultData.error || 'Erro desconhecido'}`)
-    }
-
-    // Status ainda é 'pending' ou 'processando', continuar tentando
-  }
-
-  // Se chegou aqui, excedeu o número de tentativas
-  console.error(`[Escavador] Timeout: busca não concluída após ${maxAttempts} tentativas`)
-  throw new Error('Escavador: Timeout ao aguardar resultado da busca')
+  // Transformar resposta do Escavador para formato padronizado
+  return processes.map((proc: any) => ({
+    cnj_number: proc.numero_processo || proc.cnj || proc.numero_cnj || '',
+    tribunal: proc.tribunal || proc.court || '',
+    distribution_date: proc.data_inicio || proc.data_distribuicao || proc.distribution_date || null,
+    status: proc.status || proc.situacao || 'Em andamento',
+    case_value: parseFloat(proc.valor || proc.valor_causa || proc.case_value || 0),
+    judge_name: proc.juiz || proc.judge || '',
+    court_name: proc.comarca || proc.vara || proc.court_name || '',
+    phase: proc.instancia || proc.fase || proc.instance || '',
+    author_names: extractNames(proc.partes_ativas || proc.authors || proc.plaintiffs || []),
+    defendant_names: extractNames(proc.partes_passivas || proc.defendants || []),
+    parties_cpf_cnpj: extractDocuments(proc.partes || proc.parties || [])
+  }))
 }

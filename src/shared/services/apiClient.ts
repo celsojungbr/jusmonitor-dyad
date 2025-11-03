@@ -32,12 +32,17 @@ export class ApiClient {
       }
     )
 
+    const responseData = await response.json().catch(() => ({ error: 'Unknown error' }))
+
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({ error: 'Unknown error' }))
-      throw new Error(errorData.error || `HTTP ${response.status}`)
+      // Criar erro com informações adicionais
+      const error: any = new Error(responseData.error || `HTTP ${response.status}`)
+      error.status = response.status
+      error.data = responseData
+      throw error
     }
 
-    return response.json()
+    return responseData
   }
 
   static async getCurrentUserId(): Promise<string> {
