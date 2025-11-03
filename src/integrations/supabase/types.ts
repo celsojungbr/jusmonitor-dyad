@@ -404,41 +404,53 @@ export type Database = {
       monitorings: {
         Row: {
           alerts_count: number
+          api_provider: Database["public"]["Enums"]["api_name"] | null
+          callback_url: string | null
           created_at: string
           frequency: Database["public"]["Enums"]["monitoring_frequency"]
           id: string
           last_check: string | null
+          last_notification_at: string | null
           monitoring_type: Database["public"]["Enums"]["search_type"]
           monitoring_value: string
           next_check: string | null
           process_id: string | null
           status: Database["public"]["Enums"]["monitoring_status"]
+          tracking_id: string | null
           user_id: string
         }
         Insert: {
           alerts_count?: number
+          api_provider?: Database["public"]["Enums"]["api_name"] | null
+          callback_url?: string | null
           created_at?: string
           frequency?: Database["public"]["Enums"]["monitoring_frequency"]
           id?: string
           last_check?: string | null
+          last_notification_at?: string | null
           monitoring_type: Database["public"]["Enums"]["search_type"]
           monitoring_value: string
           next_check?: string | null
           process_id?: string | null
           status?: Database["public"]["Enums"]["monitoring_status"]
+          tracking_id?: string | null
           user_id: string
         }
         Update: {
           alerts_count?: number
+          api_provider?: Database["public"]["Enums"]["api_name"] | null
+          callback_url?: string | null
           created_at?: string
           frequency?: Database["public"]["Enums"]["monitoring_frequency"]
           id?: string
           last_check?: string | null
+          last_notification_at?: string | null
           monitoring_type?: Database["public"]["Enums"]["search_type"]
           monitoring_value?: string
           next_check?: string | null
           process_id?: string | null
           status?: Database["public"]["Enums"]["monitoring_status"]
+          tracking_id?: string | null
           user_id?: string
         }
         Relationships: [

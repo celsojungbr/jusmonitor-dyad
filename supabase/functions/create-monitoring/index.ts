@@ -67,7 +67,7 @@ serve(async (req) => {
       .select('*')
       .eq('api_name', 'judit')
       .eq('is_active', true)
-      .single()
+      .maybeSingle()
 
     let trackingId: string | null = null
     let callbackUrl: string | null = null
@@ -101,12 +101,59 @@ serve(async (req) => {
           const data = await response.json()
           trackingId = data.tracking_id || data.id
           apiProvider = 'judit'
-          console.log(`[create-monitoring] Callback registrado. Tracking ID: ${trackingId}`)
+          console.log(`[create-monitoring] Callback JUDiT registrado. Tracking ID: ${trackingId}`)
         } else {
-          console.error(`[create-monitoring] Erro ao registrar callback: ${response.status}`)
+          console.error(`[create-monitoring] Erro ao registrar callback JUDiT: ${response.status}`)
         }
       } catch (error) {
-        console.error('[create-monitoring] Erro ao registrar callback:', error)
+        console.error('[create-monitoring] Erro ao registrar callback JUDiT:', error)
+      }
+    }
+
+    // Se JUDiT falhou, tentar Escavador
+    if (!trackingId) {
+      const { data: escavadorConfig } = await supabaseClient
+        .from('api_configurations')
+        .select('*')
+        .eq('api_name', 'escavador')
+        .eq('is_active', true)
+        .maybeSingle()
+
+      if (escavadorConfig) {
+        try {
+          const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? ''
+          callbackUrl = `${supabaseUrl}/functions/v1/escavador-callback`
+
+          console.log(`[create-monitoring] Registrando callback Escavador: ${callbackUrl}`)
+
+          // Registrar monitoramento no site do tribunal via Escavador
+          const response = await fetch(`${escavadorConfig.endpoint_url}/v1/monitoramentos`, {
+            method: 'POST',
+            headers: {
+              'Authorization': `Token ${escavadorConfig.api_key}`,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              numero_processo: monitoringType === 'cnj' ? value : null,
+              cpf: monitoringType === 'cpf' ? value : null,
+              cnpj: monitoringType === 'cnpj' ? value : null,
+              numero_oab: monitoringType === 'oab' ? value : null,
+              callback_url: callbackUrl,
+              callback_token: escavadorConfig.api_key
+            })
+          })
+
+          if (response.ok) {
+            const data = await response.json()
+            trackingId = data.id || data.monitoramento_id
+            apiProvider = 'escavador'
+            console.log(`[create-monitoring] Callback Escavador registrado. ID: ${trackingId}`)
+          } else {
+            console.error(`[create-monitoring] Erro ao registrar callback Escavador: ${response.status}`)
+          }
+        } catch (error) {
+          console.error('[create-monitoring] Erro ao registrar callback Escavador:', error)
+        }
       }
     }
 
