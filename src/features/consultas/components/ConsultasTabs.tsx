@@ -10,13 +10,15 @@ interface ConsultasTabsProps {
   onConsultaCadastral: (data: ConsultaCadastralData) => void
   onConsultaPenal: (data: ConsultaPenalData) => void
   loading?: boolean
+  loadingStep?: string
 }
 
 export const ConsultasTabs = ({
   onConsultaProcessual,
   onConsultaCadastral,
   onConsultaPenal,
-  loading
+  loading,
+  loadingStep
 }: ConsultasTabsProps) => {
   return (
     <Tabs defaultValue="processual" className="w-full">
@@ -35,7 +37,7 @@ export const ConsultasTabs = ({
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <ConsultaProcessual onSubmit={onConsultaProcessual} loading={loading} />
+            <ConsultaProcessual onSubmit={onConsultaProcessual} loading={loading} loadingStep={loadingStep} />
           </CardContent>
         </Card>
       </TabsContent>

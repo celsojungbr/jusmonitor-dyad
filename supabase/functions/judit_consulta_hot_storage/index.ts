@@ -58,6 +58,7 @@ Deno.serve(async (req) => {
   }
 
   try {
+    const startTime = Date.now()
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
@@ -108,7 +109,7 @@ Deno.serve(async (req) => {
         search_type: searchType,
         search_key: normalizedDoc,
         search_params: {
-          masked_response: true
+          masked_response: false
         }
       }
     }
@@ -321,6 +322,14 @@ Deno.serve(async (req) => {
         }
       }
 
+      // Normalizar todos os documentos (apenas dígitos)
+      const sanitizedDocs = allDocuments
+        .map(doc => doc.replace(/\D/g, ''))
+        .filter(Boolean)
+
+      // SEMPRE incluir o documento pesquisado
+      const allPartiesDocs = Array.from(new Set([...sanitizedDocs, normalizedDoc]))
+
       // Upsert no banco
       const { error: upsertError } = await supabase.from('processes').upsert({
         cnj_number: processData.code,
@@ -330,7 +339,7 @@ Deno.serve(async (req) => {
         status: processData.status || null,
         phase: processData.phase || null,
         case_value: processData.amount || null,
-        parties_cpf_cnpj: allDocuments.length > 0 ? allDocuments : null,
+        parties_cpf_cnpj: allPartiesDocs.length > 0 ? allPartiesDocs : null,
         author_names: authors.length > 0 ? authors : null,
         defendant_names: defendants.length > 0 ? defendants : null,
         last_searched_by: userId,
@@ -348,6 +357,8 @@ Deno.serve(async (req) => {
 
     console.log('[JUDiT Hot Storage] Busca concluída com sucesso')
 
+    const executionTime = Date.now() - startTime
+
     return new Response(
       JSON.stringify({
         success: true,
@@ -358,6 +369,7 @@ Deno.serve(async (req) => {
         request_id: requestId,
         all_pages_count: allPagesCount,
         credits_consumed: 0,
+        execution_time_ms: executionTime,
         message: `${allProcesses.length} processo(s) encontrado(s) no Hot Storage`
       }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

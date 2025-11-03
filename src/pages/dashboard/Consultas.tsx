@@ -22,6 +22,10 @@ const Consultas = () => {
   // Estado para busca simples e aprofundamento
   const [simpleSearchResult, setSimpleSearchResult] = useState<any>(null)
   const [deepSearchInProgress, setDeepSearchInProgress] = useState<any>(null)
+  
+  // Estados para UX de loading com etapas
+  const [loadingStep, setLoadingStep] = useState<string>('')
+  const [searchStartTime, setSearchStartTime] = useState<number>(0)
 
   // Carregar histórico de buscas ao montar o componente
   useEffect(() => {
@@ -216,7 +220,9 @@ const Consultas = () => {
   }, [deepSearchInProgress, toast])
 
   const handleConsultaProcessual = async (data: ConsultaProcessualData) => {
+    setSearchStartTime(Date.now())
     setLoading(true)
+    setLoadingStep('Conectando à API...')
     setSimpleSearchResult(null)
     
     try {
@@ -226,6 +232,8 @@ const Consultas = () => {
       if (data.tipoIdentificador === 'cpf' || data.tipoIdentificador === 'cnpj') {
         console.log('Iniciando busca CPF/CNPJ:', data.valor)
         
+        setLoadingStep('Criando requisição de busca...')
+        
         const response = await supabase.functions.invoke('search-document-orchestrator', {
           body: {
             userId,
@@ -234,6 +242,8 @@ const Consultas = () => {
         })
 
         console.log('Resposta da função:', response)
+        
+        setLoadingStep('Recebendo dados dos processos...')
 
         if (response.error) {
           console.error('Erro na invocação:', response.error)
@@ -273,6 +283,8 @@ const Consultas = () => {
         }
 
         console.log('Resultados encontrados:', result.results_count)
+        
+        setLoadingStep('Organizando resultados...')
 
         const buscaId = Date.now().toString()
         const novaBusca: Busca = {
@@ -354,9 +366,19 @@ const Consultas = () => {
           resultsCount: result.results_count
         })
 
+        // Calcular estatísticas para o toast
+        const executionTimeSeconds = Math.round((Date.now() - searchStartTime) / 1000)
+        const totalProcessos = processosMapeados.length
+        const processosAtivos = processosMapeados.filter(p => 
+          p.status?.toLowerCase().includes('ativo') || 
+          p.phase?.toLowerCase().includes('ativo')
+        ).length
+        const processosInativos = totalProcessos - processosAtivos
+
         toast({
-          title: "Busca concluída",
-          description: `${result.results_count} processo(s) encontrado(s)`,
+          title: `✅ Busca concluída em ${executionTimeSeconds}s`,
+          description: `${totalProcessos} processo(s) encontrado(s) (${processosAtivos} ativos, ${processosInativos} inativos)`,
+          duration: 5000,
         })
       } else {
         // Para CNJ/OAB: usar lógica anterior
@@ -411,6 +433,8 @@ const Consultas = () => {
       })
     } finally {
       setLoading(false)
+      setLoadingStep('')
+      setSearchStartTime(0)
     }
   }
 
@@ -593,6 +617,7 @@ const Consultas = () => {
         onConsultaCadastral={handleConsultaCadastral}
         onConsultaPenal={handleConsultaPenal}
         loading={loading}
+        loadingStep={loadingStep}
       />
 
       {/* Card de resultado da busca simples com opção de aprofundar */}

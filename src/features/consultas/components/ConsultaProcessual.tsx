@@ -9,9 +9,10 @@ import { ConsultaProcessualData, TipoIdentificador } from "../types/consulta.typ
 interface ConsultaProcessualProps {
   onSubmit: (data: ConsultaProcessualData) => void
   loading?: boolean
+  loadingStep?: string
 }
 
-export const ConsultaProcessual = ({ onSubmit, loading }: ConsultaProcessualProps) => {
+export const ConsultaProcessual = ({ onSubmit, loading, loadingStep }: ConsultaProcessualProps) => {
   const [tipoIdentificador, setTipoIdentificador] = useState<TipoIdentificador>("cpf")
   const [valor, setValor] = useState("")
 
@@ -67,7 +68,7 @@ export const ConsultaProcessual = ({ onSubmit, loading }: ConsultaProcessualProp
         <div className="flex items-end">
           <Button type="submit" className="w-full" disabled={loading || !valor.trim()}>
             <Search className="w-4 h-4 mr-2" />
-            {loading ? "Buscando..." : "Buscar"}
+            {loading ? (loadingStep || "Buscando...") : "Buscar"}
           </Button>
         </div>
       </div>
