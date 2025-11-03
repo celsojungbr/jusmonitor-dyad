@@ -209,7 +209,7 @@ Deno.serve(async (req) => {
 
     // Buscar primeira página para saber quantas páginas existem
     const firstPageResponse = await fetch(
-      `https://requests.prod.judit.io/responses/?request_id=${requestId}&page=${currentPage}&page_size=${pageSize}`,
+      `https://requests.prod.judit.io/responses/?request_id=${requestId}&page=${currentPage}&page_size=${pageSize}&process_status=true`,
       {
         headers: {
           'api-key': JUDIT_API_KEY,
@@ -306,7 +306,7 @@ Deno.serve(async (req) => {
       console.log('[JUDiT Hot Storage] Processando página', page, 'de', allPagesCount)
 
       const pageResponse = await fetch(
-        `https://requests.prod.judit.io/responses/?request_id=${requestId}&page=${page}&page_size=${pageSize}`,
+        `https://requests.prod.judit.io/responses/?request_id=${requestId}&page=${page}&page_size=${pageSize}&process_status=true`,
         {
           headers: {
             'api-key': JUDIT_API_KEY,
