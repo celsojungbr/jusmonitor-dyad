@@ -70,6 +70,23 @@ Deno.serve(async (req) => {
 
     if (invokeError) {
       console.error('[Orchestrator] Erro ao chamar função:', invokeError)
+      
+      // Se for timeout, retornar mensagem mais clara
+      if (result?.error === 'Timeout') {
+        return new Response(
+          JSON.stringify({
+            error: 'Timeout na API',
+            message: result.message || 'A API demorou mais que o esperado',
+            provider: apiPriority[0],
+            request_id: result.request_id
+          }),
+          {
+            status: 504,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          }
+        )
+      }
+      
       throw invokeError
     }
 

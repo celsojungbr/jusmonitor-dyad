@@ -156,8 +156,8 @@ Deno.serve(async (req) => {
 
     console.log('[JUDiT Hot Storage] Request ID criado:', requestId)
 
-    // PASSO 2: Polling do status (máximo 30 segundos, check a cada 2 segundos)
-    const maxAttempts = 15
+    // PASSO 2: Polling do status (máximo 60 segundos, check a cada 2 segundos)
+    const maxAttempts = 30 // 30 attempts x 2 seconds = 60 seconds
     const pollInterval = 2000
     let currentAttempt = 0
     let requestStatus = 'pending'
@@ -185,9 +185,14 @@ Deno.serve(async (req) => {
     }
 
     if (requestStatus !== 'completed') {
-      console.error('[JUDiT Hot Storage] Timeout: status não completou em 30 segundos')
+      console.error('[JUDiT Hot Storage] Timeout: status não completou em 60 segundos')
       return new Response(
-        JSON.stringify({ error: 'Timeout: A busca demorou mais que o esperado' }),
+        JSON.stringify({ 
+          error: 'Timeout', 
+          message: 'A API JUDiT está demorando mais que o esperado. A consulta pode estar sendo processada.',
+          request_id: requestId,
+          status: requestStatus
+        }),
         { status: 504, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
