@@ -56,6 +56,45 @@ export type Database = {
         }
         Relationships: []
       }
+      attachment_capture_jobs: {
+        Row: {
+          captured_attachments: number | null
+          cnj_number: string
+          completed_at: string | null
+          created_at: string
+          error_message: string | null
+          id: string
+          started_at: string | null
+          status: string
+          total_attachments: number | null
+          user_id: string
+        }
+        Insert: {
+          captured_attachments?: number | null
+          cnj_number: string
+          completed_at?: string | null
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          started_at?: string | null
+          status?: string
+          total_attachments?: number | null
+          user_id: string
+        }
+        Update: {
+          captured_attachments?: number | null
+          cnj_number?: string
+          completed_at?: string | null
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          started_at?: string | null
+          status?: string
+          total_attachments?: number | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       credentials_vault: {
         Row: {
           created_at: string
@@ -181,6 +220,66 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      criminal_records: {
+        Row: {
+          cpf: string
+          created_at: string
+          criminal_executions: Json | null
+          has_active_warrants: boolean | null
+          id: string
+          last_update: string
+          warrants: Json | null
+        }
+        Insert: {
+          cpf: string
+          created_at?: string
+          criminal_executions?: Json | null
+          has_active_warrants?: boolean | null
+          id?: string
+          last_update?: string
+          warrants?: Json | null
+        }
+        Update: {
+          cpf?: string
+          created_at?: string
+          criminal_executions?: Json | null
+          has_active_warrants?: boolean | null
+          id?: string
+          last_update?: string
+          warrants?: Json | null
+        }
+        Relationships: []
+      }
+      diarios_oficiais_cache: {
+        Row: {
+          created_at: string
+          id: string
+          last_update: string
+          results: Json | null
+          results_count: number | null
+          search_term: string
+          search_type: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          last_update?: string
+          results?: Json | null
+          results_count?: number | null
+          search_term: string
+          search_type: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          last_update?: string
+          results?: Json | null
+          results_count?: number | null
+          search_term?: string
+          search_type?: string
+        }
+        Relationships: []
       }
       edge_function_config: {
         Row: {
@@ -493,9 +592,12 @@ export type Database = {
           distribution_date: string | null
           id: string
           judge_name: string | null
+          last_searched_by: string | null
           last_update: string
           parties_cpf_cnpj: Json | null
           phase: string | null
+          search_count: number | null
+          source_api: Database["public"]["Enums"]["api_name"] | null
           status: string | null
           tribunal: string
         }
@@ -509,9 +611,12 @@ export type Database = {
           distribution_date?: string | null
           id?: string
           judge_name?: string | null
+          last_searched_by?: string | null
           last_update?: string
           parties_cpf_cnpj?: Json | null
           phase?: string | null
+          search_count?: number | null
+          source_api?: Database["public"]["Enums"]["api_name"] | null
           status?: string | null
           tribunal: string
         }
@@ -525,9 +630,12 @@ export type Database = {
           distribution_date?: string | null
           id?: string
           judge_name?: string | null
+          last_searched_by?: string | null
           last_update?: string
           parties_cpf_cnpj?: Json | null
           phase?: string | null
+          search_count?: number | null
+          source_api?: Database["public"]["Enums"]["api_name"] | null
           status?: string | null
           tribunal?: string
         }
@@ -566,6 +674,45 @@ export type Database = {
           phone?: string | null
           updated_at?: string
           user_type?: Database["public"]["Enums"]["user_type"]
+        }
+        Relationships: []
+      }
+      registration_data: {
+        Row: {
+          additional_data: Json | null
+          addresses: Json | null
+          contacts: Json | null
+          created_at: string
+          document: string
+          document_type: string
+          full_name: string | null
+          id: string
+          last_update: string
+          registration_status: string | null
+        }
+        Insert: {
+          additional_data?: Json | null
+          addresses?: Json | null
+          contacts?: Json | null
+          created_at?: string
+          document: string
+          document_type: string
+          full_name?: string | null
+          id?: string
+          last_update?: string
+          registration_status?: string | null
+        }
+        Update: {
+          additional_data?: Json | null
+          addresses?: Json | null
+          contacts?: Json | null
+          created_at?: string
+          document?: string
+          document_type?: string
+          full_name?: string | null
+          id?: string
+          last_update?: string
+          registration_status?: string | null
         }
         Relationships: []
       }
@@ -663,27 +810,36 @@ export type Database = {
       }
       user_searches: {
         Row: {
+          api_used: Database["public"]["Enums"]["api_name"] | null
           created_at: string
           credits_consumed: number
+          from_cache: boolean | null
           id: string
+          response_time_ms: number | null
           results_count: number
           search_type: Database["public"]["Enums"]["search_type"]
           search_value: string
           user_id: string
         }
         Insert: {
+          api_used?: Database["public"]["Enums"]["api_name"] | null
           created_at?: string
           credits_consumed: number
+          from_cache?: boolean | null
           id?: string
+          response_time_ms?: number | null
           results_count?: number
           search_type: Database["public"]["Enums"]["search_type"]
           search_value: string
           user_id: string
         }
         Update: {
+          api_used?: Database["public"]["Enums"]["api_name"] | null
           created_at?: string
           credits_consumed?: number
+          from_cache?: boolean | null
           id?: string
+          response_time_ms?: number | null
           results_count?: number
           search_type?: Database["public"]["Enums"]["search_type"]
           search_value?: string

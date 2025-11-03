@@ -5,7 +5,11 @@ import {
   DownloadAttachmentRequest,
   DownloadAttachmentResponse,
   AiChatRequest,
-  AiChatResponse
+  AiChatResponse,
+  CaptureAttachmentsRequest,
+  CaptureAttachmentsResponse,
+  GeneratePdfDossierRequest,
+  GeneratePdfDossierResponse
 } from '@/shared/types'
 
 export class ProcessoService {
@@ -81,5 +85,37 @@ export class ProcessoService {
       .eq('process_id', processId)
 
     if (error) throw error
+  }
+
+  static async captureAttachments(cnjNumber: string): Promise<CaptureAttachmentsResponse> {
+    const userId = await ApiClient.getCurrentUserId()
+
+    const request: CaptureAttachmentsRequest = {
+      cnjNumber,
+      userId
+    }
+
+    return ApiClient.callEdgeFunction<CaptureAttachmentsRequest, CaptureAttachmentsResponse>(
+      'capture-attachments',
+      request
+    )
+  }
+
+  static async generatePdfDossier(
+    cnjNumber: string,
+    includeAttachments: boolean = false
+  ): Promise<GeneratePdfDossierResponse> {
+    const userId = await ApiClient.getCurrentUserId()
+
+    const request: GeneratePdfDossierRequest = {
+      cnjNumber,
+      userId,
+      includeAttachments
+    }
+
+    return ApiClient.callEdgeFunction<GeneratePdfDossierRequest, GeneratePdfDossierResponse>(
+      'generate-pdf-dossier',
+      request
+    )
   }
 }

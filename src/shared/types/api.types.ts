@@ -69,6 +69,106 @@ export interface CreateMonitoringResponse {
 }
 
 // ============================================
+// REGISTRATION DATA (Dados Cadastrais)
+// ============================================
+export interface SearchRegistrationDataRequest {
+  documentType: 'cpf' | 'cnpj'
+  document: string
+  userId: string
+}
+
+export interface SearchRegistrationDataResponse {
+  success: boolean
+  from_cache: boolean
+  credits_consumed: number
+  data: {
+    name: string
+    document: string
+    document_type: string
+    addresses: any[]
+    contacts: any[]
+    registration_status: string
+    additional_data: any
+    last_update: string
+  }
+}
+
+// ============================================
+// CRIMINAL RECORDS (Consultas Penais)
+// ============================================
+export interface SearchCriminalRecordsRequest {
+  cpf: string
+  userId: string
+}
+
+export interface SearchCriminalRecordsResponse {
+  success: boolean
+  from_cache: boolean
+  credits_consumed: number
+  data: {
+    cpf: string
+    warrants: any[]
+    criminal_executions: any[]
+    has_active_warrants: boolean
+    last_update: string
+  }
+}
+
+// ============================================
+// DIÁRIOS OFICIAIS
+// ============================================
+export interface SearchDiariosOficiaisRequest {
+  searchType: 'cpf' | 'cnpj' | 'oab' | 'nome'
+  searchValue: string
+  userId: string
+}
+
+export interface SearchDiariosOficiaisResponse {
+  success: boolean
+  from_cache: boolean
+  credits_consumed: number
+  source: string
+  results_count: number
+  results: any[]
+  processes_mentioned?: string[]
+}
+
+// ============================================
+// CAPTURE ATTACHMENTS
+// ============================================
+export interface CaptureAttachmentsRequest {
+  cnjNumber: string
+  userId: string
+}
+
+export interface CaptureAttachmentsResponse {
+  success: boolean
+  job_id: string
+  status: string
+  estimated_time?: string
+  message: string
+}
+
+// ============================================
+// GENERATE PDF DOSSIER
+// ============================================
+export interface GeneratePdfDossierRequest {
+  cnjNumber: string
+  userId: string
+  includeAttachments?: boolean
+}
+
+export interface GeneratePdfDossierResponse {
+  success: boolean
+  credits_consumed: number
+  pdf_html: string
+  process_data: any
+  movements_count: number
+  attachments_count: number
+  message: string
+}
+
+// ============================================
 // AI CHAT
 // ============================================
 export interface AiChatRequest {
