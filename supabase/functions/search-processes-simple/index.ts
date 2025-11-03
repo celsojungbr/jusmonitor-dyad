@@ -49,14 +49,16 @@ serve(async (req) => {
 
     // PASSO 1: Buscar no cache local primeiro (últimas 24h)
     console.log('[Simple Search] Verificando cache local...')
+    
+    // Buscar processos onde o CPF/CNPJ está no array parties_cpf_cnpj
     const { data: cachedProcesses, error: cacheError } = await supabase
       .from('processes')
       .select('*')
-      .or(`parties_cpf_cnpj.cs.{"${searchValue}"}`)
+      .contains('parties_cpf_cnpj', [searchValue])
       .gte('last_update', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString())
 
     if (cacheError) {
-      console.error('[Simple Search] Erro ao buscar cache:', cacheError)
+      console.log('[Simple Search] Erro ao buscar cache (ignorando):', cacheError.message)
     }
 
     if (cachedProcesses && cachedProcesses.length > 0) {
@@ -117,9 +119,41 @@ serve(async (req) => {
       }
     })
 
+    // Tratar 404 como "sem resultados" em vez de erro
     if (!diariosResponse.ok) {
       const errorText = await diariosResponse.text()
-      console.error('[Simple Search] Erro ao buscar diários:', diariosResponse.status, errorText)
+      console.log(`[Simple Search] Status ${diariosResponse.status} da API Escavador:`, errorText.substring(0, 200))
+      
+      if (diariosResponse.status === 404) {
+        // 404 = sem resultados, não é erro
+        console.log('[Simple Search] Nenhum resultado encontrado nos diários oficiais')
+        
+        await supabase.from('user_searches').insert({
+          user_id: userId,
+          search_type: searchType,
+          search_value: searchValue,
+          credits_consumed: 0,
+          results_count: 0,
+          from_cache: false,
+          api_used: 'escavador'
+        })
+
+        return new Response(
+          JSON.stringify({
+            processes: [],
+            from_cache: false,
+            credits_consumed: 0,
+            results_count: 0,
+            search_type: 'simple',
+            message: 'Nenhum processo encontrado nos diários oficiais'
+          }),
+          { 
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            status: 200
+          }
+        )
+      }
+      
       throw new Error(`Erro ao buscar diários oficiais: ${diariosResponse.status}`)
     }
 
