@@ -259,6 +259,44 @@ Deno.serve(async (req) => {
     allPagesCount = firstPageData.all_pages_count || 1
     allProcesses.push(...firstPageData.page_data)
 
+    console.log('[JUDiT Hot Storage] === RESPOSTA COMPLETA DA API ===')
+    console.log('[JUDiT Hot Storage] Total de páginas:', firstPageData.all_pages_count)
+    console.log('[JUDiT Hot Storage] Total de processos:', firstPageData.all_count)
+
+    // Logar ESTRUTURA COMPLETA do primeiro processo para análise
+    if (firstPageData.page_data && firstPageData.page_data.length > 0) {
+      const firstProcess = firstPageData.page_data[0]
+      console.log('[JUDiT Hot Storage] === ESTRUTURA DO PRIMEIRO PROCESSO ===')
+      console.log('[JUDiT Hot Storage] response_data completo:', JSON.stringify(firstProcess.response_data, null, 2))
+      
+      // Analisar parties em detalhes
+      if (firstProcess.response_data.parties) {
+        console.log('[JUDiT Hot Storage] === ESTRUTURA DE PARTIES ===')
+        firstProcess.response_data.parties.forEach((party, index) => {
+          console.log(`[JUDiT Hot Storage] Party ${index}:`, {
+            name: party.name,
+            side: party.side,
+            person_type: party.person_type,
+            document: party.document,
+            tem_lawyers: !!party.lawyers,
+            lawyers_count: party.lawyers?.length || 0
+          })
+          
+          // Logar advogados se existirem
+          if (party.lawyers && party.lawyers.length > 0) {
+            console.log(`[JUDiT Hot Storage] Advogados da Party ${index}:`, party.lawyers)
+          }
+        })
+      }
+      
+      // Verificar outros campos de status
+      console.log('[JUDiT Hot Storage] === CAMPOS DE STATUS ===')
+      console.log('[JUDiT Hot Storage] status:', firstProcess.response_data.status)
+      console.log('[JUDiT Hot Storage] phase:', firstProcess.response_data.phase)
+      console.log('[JUDiT Hot Storage] request_status:', firstProcess.request_status)
+      console.log('[JUDiT Hot Storage] response_type:', firstProcess.response_type)
+    }
+
     console.log('[JUDiT Hot Storage] Total de páginas:', allPagesCount)
     console.log('[JUDiT Hot Storage] Processando página 1 de', allPagesCount)
 
@@ -302,6 +340,17 @@ Deno.serve(async (req) => {
       const processData = processItem.response_data
 
       if (!processData.code) continue
+
+      // LOGGING: Estrutura de cada processo antes de processar
+      console.log(`[JUDiT Hot Storage] Processando CNJ ${processData.code}:`, {
+        has_status: !!processData.status,
+        status_value: processData.status,
+        has_phase: !!processData.phase,
+        phase_value: processData.phase,
+        parties_count: processData.parties?.length || 0,
+        request_status: processItem.request_status,
+        response_type: processItem.response_type
+      })
 
       // Extrair partes (authors, defendants, documentos)
       const authors: string[] = []
