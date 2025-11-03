@@ -337,7 +337,7 @@ Deno.serve(async (req) => {
         source_api: 'judit',
         last_update: new Date().toISOString()
       }, {
-        onConflict: 'cnj_number,tribunal',
+        onConflict: 'cnj_number',
         ignoreDuplicates: false
       })
 
