@@ -1,13 +1,21 @@
-import { Link, Outlet, useLocation } from "react-router-dom"
+import { Link, Outlet, useLocation, useNavigate } from "react-router-dom"
 import { 
   LayoutDashboard, 
   Users, 
   FileText, 
   CreditCard, 
   Settings, 
-  FileBarChart 
+  FileBarChart,
+  LogOut,
+  User,
+  ArrowLeft
 } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { useAuth } from "@/shared/hooks/useAuth"
+import { useToast } from "@/hooks/use-toast"
+import avatarIcon from "@/assets/avatar-icon.png"
 
 const adminNav = [
   { name: "Dashboard", path: "/dashboard/admin", icon: LayoutDashboard },
@@ -20,6 +28,40 @@ const adminNav = [
 
 const AdminLayout = () => {
   const location = useLocation()
+  const navigate = useNavigate()
+  const { toast } = useToast()
+  const { profile, signOut } = useAuth()
+
+  const handleSignOut = async () => {
+    try {
+      await signOut()
+      toast({
+        title: "Logout realizado",
+        description: "Até logo!",
+      })
+      navigate("/")
+    } catch (error) {
+      console.error("Erro ao fazer logout:", error)
+      toast({
+        title: "Erro",
+        description: "Não foi possível sair. Tente novamente.",
+        variant: "destructive",
+      })
+    }
+  }
+
+  // Obter iniciais do nome
+  const getInitials = (name: string) => {
+    return name
+      .split(" ")
+      .map((n) => n[0])
+      .join("")
+      .toUpperCase()
+      .slice(0, 2)
+  }
+
+  const userName = profile?.full_name || "Usuário"
+  const userInitials = getInitials(userName)
 
   return (
     <div className="flex h-screen bg-background">
@@ -51,9 +93,48 @@ const AdminLayout = () => {
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 overflow-auto">
-        <Outlet />
-      </main>
+      <div className="flex-1 flex flex-col">
+        <header className="h-16 border-b bg-background flex items-center justify-end px-6">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button className="flex items-center gap-3 hover:opacity-80 transition-opacity">
+                <div className="text-right">
+                  <div className="text-sm font-medium">{userName}</div>
+                  <div className="text-xs text-muted-foreground">Administrador</div>
+                </div>
+                <Avatar>
+                  <AvatarImage src={profile?.avatar_url || avatarIcon} />
+                  <AvatarFallback>{userInitials}</AvatarFallback>
+                </Avatar>
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-56 z-50 bg-background">
+              <DropdownMenuItem>
+                <User className="w-4 h-4 mr-2" />
+                Perfil
+              </DropdownMenuItem>
+              <DropdownMenuItem>
+                <Settings className="w-4 h-4 mr-2" />
+                Configurações
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => navigate('/dashboard/consultas')}>
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                Voltar ao Painel de Usuário
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem className="text-destructive" onClick={handleSignOut}>
+                <LogOut className="w-4 h-4 mr-2" />
+                Sair
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </header>
+
+        <main className="flex-1 overflow-auto">
+          <Outlet />
+        </main>
+      </div>
     </div>
   )
 }
