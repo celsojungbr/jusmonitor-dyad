@@ -29,8 +29,21 @@ export const ProcessoCard = ({
               {processo.tribunal && (
                 <Badge variant="outline">{processo.tribunal}</Badge>
               )}
-              {processo.status && (
-                <Badge>{processo.status}</Badge>
+              {processo.status ? (
+                <Badge 
+                  variant={processo.status.toLowerCase() === 'ativo' ? 'default' : 'secondary'}
+                  className={
+                    processo.status.toLowerCase() === 'ativo' 
+                      ? 'bg-green-500 hover:bg-green-600 text-white' 
+                      : 'bg-gray-500 hover:bg-gray-600 text-white'
+                  }
+                >
+                  {processo.status}
+                </Badge>
+              ) : (
+                <Badge variant="outline" className="text-muted-foreground">
+                  Status Não Informado
+                </Badge>
               )}
             </div>
             
@@ -41,8 +54,32 @@ export const ProcessoCard = ({
               {processo.author_names && processo.author_names.length > 0 && (
                 <p><strong>Autor:</strong> {processo.author_names.join(', ')}</p>
               )}
+              {(processo as any).author_lawyers?.length > 0 && (
+                <p className="text-xs">
+                  <strong>Advogado(s) do Autor:</strong>{' '}
+                  {(processo as any).author_lawyers.map((lawyer: any, idx: number) => (
+                    <span key={idx}>
+                      {lawyer.name}
+                      {lawyer.oab && ` (${lawyer.oab})`}
+                      {idx < (processo as any).author_lawyers.length - 1 && ', '}
+                    </span>
+                  ))}
+                </p>
+              )}
               {processo.defendant_names && processo.defendant_names.length > 0 && (
                 <p><strong>Réu:</strong> {processo.defendant_names.join(', ')}</p>
+              )}
+              {(processo as any).defendant_lawyers?.length > 0 && (
+                <p className="text-xs">
+                  <strong>Advogado(s) do Réu:</strong>{' '}
+                  {(processo as any).defendant_lawyers.map((lawyer: any, idx: number) => (
+                    <span key={idx}>
+                      {lawyer.name}
+                      {lawyer.oab && ` (${lawyer.oab})`}
+                      {idx < (processo as any).defendant_lawyers.length - 1 && ', '}
+                    </span>
+                  ))}
+                </p>
               )}
               {processo.distribution_date && (
                 <p><strong>Distribuição:</strong> {new Date(processo.distribution_date).toLocaleDateString('pt-BR')}</p>

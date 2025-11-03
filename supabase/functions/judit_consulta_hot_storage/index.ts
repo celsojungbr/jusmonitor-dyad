@@ -111,7 +111,8 @@ Deno.serve(async (req) => {
         search_params: {
           masked_response: false
         }
-      }
+      },
+      process_status: true  // Obter status e phase dos processos
     }
 
     console.log('[JUDiT Hot Storage] Criando request na JUDiT...')
@@ -352,31 +353,72 @@ Deno.serve(async (req) => {
         response_type: processItem.response_type
       })
 
-      // Extrair partes (authors, defendants, documentos)
+      // Extrair partes E advogados separadamente
       const authors: string[] = []
       const defendants: string[] = []
+      const authorLawyers: Array<{name: string, oab?: string}> = []
+      const defendantLawyers: Array<{name: string, oab?: string}> = []
       const allDocuments: string[] = []
 
       for (const party of processData.parties || []) {
-        // Adicionar documento se existir
-        if (party.document) {
+        // Capturar documento das PARTES (não advogados)
+        if (party.document && party.person_type !== 'Advogado') {
           allDocuments.push(party.document)
         }
-
-        // Separar por lado e tipo
-        if (party.side === 'Active' && party.person_type === 'Autor') {
+        
+        // CASO 1: Party é advogado direto (person_type = "Advogado")
+        if (party.person_type === 'Advogado') {
+          const lawyerInfo = {
+            name: party.name,
+            oab: party.name.match(/OAB\s*[\d\w\/-]+/i)?.[0]
+          }
+          
+          if (party.side === 'Active') {
+            authorLawyers.push(lawyerInfo)
+          } else if (party.side === 'Passive') {
+            defendantLawyers.push(lawyerInfo)
+          }
+          continue  // Não adicionar advogado como parte
+        }
+        
+        // CASO 2: Party é parte real (Autor/Réu)
+        if (party.person_type === 'Autor') {
           authors.push(party.name)
-        } else if (party.side === 'Passive' && party.person_type === 'Réu') {
+        } else if (party.person_type === 'Réu') {
           defendants.push(party.name)
+        }
+        
+        // CASO 3: Extrair advogados do array lawyers dentro da party
+        if (party.lawyers && party.lawyers.length > 0) {
+          for (const lawyer of party.lawyers) {
+            const lawyerInfo = {
+              name: lawyer.name,
+              oab: lawyer.name.match(/OAB\s*[\d\w\/-]+/i)?.[0]
+            }
+            
+            if (party.side === 'Active') {
+              authorLawyers.push(lawyerInfo)
+            } else if (party.side === 'Passive') {
+              defendantLawyers.push(lawyerInfo)
+            }
+          }
         }
       }
 
-      // Normalizar todos os documentos (apenas dígitos)
+      // Remover duplicatas
+      const uniqueAuthors = Array.from(new Set(authors))
+      const uniqueDefendants = Array.from(new Set(defendants))
+      const uniqueAuthorLawyers = Array.from(
+        new Set(authorLawyers.map(l => JSON.stringify(l)))
+      ).map(s => JSON.parse(s))
+      const uniqueDefendantLawyers = Array.from(
+        new Set(defendantLawyers.map(l => JSON.stringify(l)))
+      ).map(s => JSON.parse(s))
+
+      // Normalizar documentos e SEMPRE incluir o CPF pesquisado
       const sanitizedDocs = allDocuments
         .map(doc => doc.replace(/\D/g, ''))
         .filter(Boolean)
-
-      // SEMPRE incluir o documento pesquisado
       const allPartiesDocs = Array.from(new Set([...sanitizedDocs, normalizedDoc]))
 
       // Upsert no banco
@@ -385,12 +427,14 @@ Deno.serve(async (req) => {
         tribunal: processData.tribunal_acronym || 'Desconhecido',
         court_name: processData.courts?.[0]?.name || null,
         distribution_date: processData.distribution_date || null,
-        status: processData.status || null,
-        phase: processData.phase || null,
+        status: processData.status || null,  // Status real da API
+        phase: processData.phase || null,    // Fase real da API
         case_value: processData.amount || null,
         parties_cpf_cnpj: allPartiesDocs.length > 0 ? allPartiesDocs : null,
-        author_names: authors.length > 0 ? authors : null,
-        defendant_names: defendants.length > 0 ? defendants : null,
+        author_names: uniqueAuthors.length > 0 ? uniqueAuthors : null,
+        defendant_names: uniqueDefendants.length > 0 ? uniqueDefendants : null,
+        author_lawyers: uniqueAuthorLawyers.length > 0 ? uniqueAuthorLawyers : null,
+        defendant_lawyers: uniqueDefendantLawyers.length > 0 ? uniqueDefendantLawyers : null,
         last_searched_by: userId,
         source_api: 'judit',
         last_update: new Date().toISOString()

@@ -50,7 +50,10 @@ export const BuscaCard = ({ busca, processos = [], onOcultar }: BuscaCardProps) 
   }
 
   const processosExibidos = showOnlyActive 
-    ? processos.filter(p => p.status?.toLowerCase() === 'ativo' || p.status?.toLowerCase() === 'active')
+    ? processos.filter(p => {
+        const status = p.status?.toLowerCase()
+        return status === 'ativo' || status === 'active'
+      })
     : processos
 
   return (

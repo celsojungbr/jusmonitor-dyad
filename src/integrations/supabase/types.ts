@@ -640,11 +640,13 @@ export type Database = {
       }
       processes: {
         Row: {
+          author_lawyers: Json | null
           author_names: Json | null
           case_value: number | null
           cnj_number: string
           court_name: string | null
           created_at: string
+          defendant_lawyers: Json | null
           defendant_names: Json | null
           distribution_date: string | null
           id: string
@@ -659,11 +661,13 @@ export type Database = {
           tribunal: string
         }
         Insert: {
+          author_lawyers?: Json | null
           author_names?: Json | null
           case_value?: number | null
           cnj_number: string
           court_name?: string | null
           created_at?: string
+          defendant_lawyers?: Json | null
           defendant_names?: Json | null
           distribution_date?: string | null
           id?: string
@@ -678,11 +682,13 @@ export type Database = {
           tribunal: string
         }
         Update: {
+          author_lawyers?: Json | null
           author_names?: Json | null
           case_value?: number | null
           cnj_number?: string
           court_name?: string | null
           created_at?: string
+          defendant_lawyers?: Json | null
           defendant_names?: Json | null
           distribution_date?: string | null
           id?: string
