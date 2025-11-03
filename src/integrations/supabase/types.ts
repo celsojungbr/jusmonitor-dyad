@@ -56,6 +56,48 @@ export type Database = {
         }
         Relationships: []
       }
+      async_searches: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          error_message: string | null
+          id: string
+          provider: Database["public"]["Enums"]["api_name"]
+          request_id: string
+          results_count: number | null
+          search_type: Database["public"]["Enums"]["search_type"]
+          search_value: string
+          status: string
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          provider: Database["public"]["Enums"]["api_name"]
+          request_id: string
+          results_count?: number | null
+          search_type: Database["public"]["Enums"]["search_type"]
+          search_value: string
+          status?: string
+          user_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          provider?: Database["public"]["Enums"]["api_name"]
+          request_id?: string
+          results_count?: number | null
+          search_type?: Database["public"]["Enums"]["search_type"]
+          search_value?: string
+          status?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       attachment_capture_jobs: {
         Row: {
           captured_attachments: number | null

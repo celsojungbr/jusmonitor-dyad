@@ -104,28 +104,145 @@ serve(async (req) => {
 
     console.log(`[JUDiT Callback] Processando evento: ${eventType}, tracking_id: ${trackingId}`)
 
-    // Buscar monitoramento relacionado
+    // Buscar monitoramento relacionado OU busca assíncrona
     const { data: monitoring } = await supabaseClient
       .from('monitorings')
       .select('*')
       .eq('tracking_id', trackingId)
       .single()
 
-    if (!monitoring) {
-      console.warn(`[JUDiT Callback] Monitoramento não encontrado para tracking_id: ${trackingId}`)
+    const { data: asyncSearch } = await supabaseClient
+      .from('async_searches')
+      .select('*')
+      .eq('request_id', trackingId)
+      .single()
+
+    if (!monitoring && !asyncSearch) {
+      console.warn(`[JUDiT Callback] Nem monitoramento nem busca assíncrona encontrado para request_id: ${trackingId}`)
 
       await supabaseClient
         .from('callback_logs')
         .update({
           processing_status: 'failed',
-          error_message: 'Monitoring not found',
+          error_message: 'Monitoring or async search not found',
           processed_at: new Date().toISOString()
         })
         .eq('id', callbackLogId)
 
       return new Response(
-        JSON.stringify({ error: 'Monitoring not found', tracking_id: trackingId }),
+        JSON.stringify({ error: 'Monitoring or async search not found', tracking_id: trackingId }),
         { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    // Se for busca assíncrona, processar de forma diferente
+    if (asyncSearch) {
+      console.log(`[JUDiT Callback] Processando busca assíncrona: ${asyncSearch.id}`)
+      
+      const processes: any[] = []
+      const data = callbackData.data || callbackData
+      
+      // Extrair processos
+      if (data.processes && Array.isArray(data.processes)) {
+        for (const proc of data.processes) {
+          processes.push({
+            cnj_number: proc.process_number || proc.cnj_number,
+            tribunal: proc.court || proc.tribunal || 'Desconhecido',
+            court_name: proc.court_name,
+            distribution_date: proc.distribution_date,
+            judge_name: proc.judge_name,
+            case_value: proc.case_value,
+            status: proc.status,
+            phase: proc.phase,
+            author_names: proc.plaintiffs || [],
+            defendant_names: proc.defendants || [],
+            parties_cpf_cnpj: [asyncSearch.search_value],
+            source_api: 'judit',
+            last_searched_by: asyncSearch.user_id
+          })
+        }
+      } else if (data.process_number || data.cnj_number) {
+        // Único processo
+        processes.push({
+          cnj_number: data.process_number || data.cnj_number,
+          tribunal: data.court || data.tribunal || 'Desconhecido',
+          court_name: data.court_name,
+          distribution_date: data.distribution_date,
+          judge_name: data.judge_name,
+          case_value: data.case_value,
+          status: data.status,
+          phase: data.phase,
+          author_names: data.plaintiffs || [],
+          defendant_names: data.defendants || [],
+          parties_cpf_cnpj: [asyncSearch.search_value],
+          source_api: 'judit',
+          last_searched_by: asyncSearch.user_id
+        })
+      }
+
+      // Salvar processos
+      if (processes.length > 0) {
+        await supabaseClient
+          .from('processes')
+          .upsert(processes, { onConflict: 'cnj_number' })
+      }
+
+      // Atualizar busca assíncrona como completa
+      await supabaseClient
+        .from('async_searches')
+        .update({
+          status: 'completed',
+          completed_at: new Date().toISOString(),
+          results_count: processes.length
+        })
+        .eq('id', asyncSearch.id)
+
+      // Registrar na tabela user_searches
+      await supabaseClient.from('user_searches').insert({
+        user_id: asyncSearch.user_id,
+        search_type: asyncSearch.search_type,
+        search_value: asyncSearch.search_value,
+        credits_consumed: 0, // Já foi deduzido antes
+        results_count: processes.length,
+        from_cache: false,
+        api_used: 'judit'
+      })
+
+      // Criar notificação para o usuário
+      await supabaseClient
+        .from('notifications')
+        .insert({
+          user_id: asyncSearch.user_id,
+          notification_type: 'system',
+          title: 'Busca completa finalizada',
+          content: `Sua busca por ${asyncSearch.search_value} foi concluída. Encontrados ${processes.length} processo(s).`,
+          is_read: false,
+          link_to: '/dashboard/consultas'
+        })
+
+      // Atualizar log como completo
+      const processingTime = Date.now() - startTime
+      if (callbackLogId) {
+        await supabaseClient
+          .from('callback_logs')
+          .update({
+            processing_status: 'completed',
+            processing_time_ms: processingTime,
+            processed_at: new Date().toISOString()
+          })
+          .eq('id', callbackLogId)
+      }
+
+      console.log(`[JUDiT Callback] Busca assíncrona processada. Processos: ${processes.length}`)
+
+      return new Response(
+        JSON.stringify({
+          success: true,
+          type: 'async_search',
+          processes_found: processes.length,
+          processing_time_ms: processingTime
+        }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 

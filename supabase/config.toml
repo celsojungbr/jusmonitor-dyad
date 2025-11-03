@@ -9,6 +9,9 @@ verify_jwt = true
 [functions.capture-attachments]
 verify_jwt = true
 
+[functions.check-api-balance]
+verify_jwt = true
+
 [functions.check-monitoring]
 verify_jwt = false
 
@@ -22,6 +25,9 @@ verify_jwt = true
 verify_jwt = false
 
 [functions.generate-pdf-dossier]
+verify_jwt = true
+
+[functions.get-api-logs]
 verify_jwt = true
 
 [functions.get-process-details]
@@ -40,6 +46,12 @@ verify_jwt = true
 verify_jwt = true
 
 [functions.search-processes]
+verify_jwt = true
+
+[functions.search-processes-async]
+verify_jwt = true
+
+[functions.search-processes-simple]
 verify_jwt = true
 
 [functions.search-registration-data]
