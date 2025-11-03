@@ -35,7 +35,7 @@ const Landing = () => {
 
         {/* Content */}
         <div className="relative z-10 container mx-auto px-4 text-center">
-          <Badge className="mb-6 px-4 py-2 text-xs animate-fade-in-up border-primary/20 bg-primary/5">
+          <Badge className="mb-6 px-4 py-2 text-xs animate-fade-in-up">
             Plataforma de Monitoramento Judicial com IA
           </Badge>
 
@@ -98,7 +98,7 @@ const Landing = () => {
       <section className="py-20 bg-gradient-to-b from-background to-secondary/30">
         <div className="container mx-auto px-4">
           <div className="text-center mb-12">
-            <Badge className="mb-4 border-primary/20 bg-primary/5">Recursos Principais</Badge>
+            <Badge className="mb-4">Recursos Principais</Badge>
             <h2 className="text-3xl md:text-4xl font-bold mb-4">
               Tudo que você precisa em uma plataforma
             </h2>
@@ -171,7 +171,7 @@ const Landing = () => {
       <section className="py-20 bg-secondary/30">
         <div className="container mx-auto px-4">
           <div className="text-center mb-12">
-            <Badge className="mb-4 border-primary/20 bg-primary/5">Processo Simples</Badge>
+            <Badge className="mb-4">Processo Simples</Badge>
             <h2 className="text-3xl md:text-4xl font-bold mb-4">
               Como Funciona
             </h2>
@@ -219,7 +219,7 @@ const Landing = () => {
         <div className="container mx-auto px-4">
           <div className="grid md:grid-cols-2 gap-12 items-center max-w-6xl mx-auto">
             <div>
-              <Badge className="mb-4 border-primary/20 bg-primary/5">Vantagens</Badge>
+              <Badge className="mb-4">Vantagens</Badge>
               <h2 className="text-3xl md:text-4xl font-bold mb-6">
                 Por que escolher o JusMonitor?
               </h2>
@@ -319,7 +319,7 @@ const Landing = () => {
       <section className="py-20 bg-secondary/30">
         <div className="container mx-auto px-4">
           <div className="text-center mb-12">
-            <Badge className="mb-4 border-primary/20 bg-primary/5">Depoimentos</Badge>
+            <Badge className="mb-4">Depoimentos</Badge>
             <h2 className="text-3xl md:text-4xl font-bold mb-4">
               O que nossos clientes dizem
             </h2>

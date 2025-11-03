@@ -9,7 +9,7 @@ const Sobre = () => {
       <section className="pt-24 pb-20">
         <div className="container mx-auto px-4 max-w-4xl">
           <div className="text-center mb-12">
-            <Badge className="mb-4 border-primary/20 bg-primary/5">Sobre Nós</Badge>
+            <Badge className="mb-4">Sobre Nós</Badge>
             <h1 className="text-4xl md:text-5xl font-bold mb-4">
               Sobre o JusMonitor
             </h1>
