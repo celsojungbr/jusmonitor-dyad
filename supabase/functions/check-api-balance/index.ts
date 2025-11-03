@@ -60,33 +60,44 @@ serve(async (req) => {
     const juditConfig = configs?.find(c => c.api_name === 'judit')
     if (juditConfig) {
       try {
-        const response = await fetch(`${juditConfig.endpoint_url}/requests?page_size=1`, {
+        const juditUrl = `${juditConfig.endpoint_url}/v1/resource/consumption`
+        console.log('[JUDiT] Fetching balance from:', juditUrl)
+        
+        const response = await fetch(juditUrl, {
           method: 'GET',
           headers: {
-            'api-key': Deno.env.get('JUDIT_API_KEY') || '',
+            'Authorization': `Bearer ${Deno.env.get('JUDIT_API_KEY')}`,
             'Content-Type': 'application/json'
           },
           signal: AbortSignal.timeout(10000)
         })
 
+        console.log('[JUDiT] Response status:', response.status)
+
         if (response.ok) {
           const data = await response.json()
+          console.log('[JUDiT] Response data:', JSON.stringify(data))
+          
           balances.judit = {
             success: true,
-            balance: data.total_count || 0,
-            consumed: 0,
-            total: data.total_count || 0,
-            lastCheck: new Date().toISOString(),
-            message: 'JUDiT API operacional'
+            balance: data.remaining_credits || data.credits || 0,
+            consumed: data.consumed_credits || 0,
+            total: data.total_credits || 0,
+            lastCheck: new Date().toISOString()
           }
         } else {
+          const errorText = await response.text()
+          console.error('[JUDiT] Error response:', errorText)
+          
           balances.judit = {
             success: false,
-            error: `HTTP ${response.status}`,
+            error: `HTTP ${response.status}: ${errorText.substring(0, 100)}`,
             lastCheck: new Date().toISOString()
           }
         }
       } catch (error) {
+        console.error('[JUDiT] Exception:', error)
+        
         balances.judit = {
           success: false,
           error: error instanceof Error ? error.message : 'Unknown error',
@@ -99,18 +110,24 @@ serve(async (req) => {
     const escavadorConfig = configs?.find(c => c.api_name === 'escavador')
     if (escavadorConfig) {
       try {
-        const response = await fetch(`${escavadorConfig.endpoint_url}/saldo`, {
+        const escavadorUrl = `${escavadorConfig.endpoint_url}/v1/saldo`
+        console.log('[Escavador] Fetching balance from:', escavadorUrl)
+        
+        const response = await fetch(escavadorUrl, {
           method: 'GET',
           headers: {
-            'Authorization': `Bearer ${Deno.env.get('ESCAVADOR_API_KEY')}`,
-            'Content-Type': 'application/json',
-            'X-Requested-With': 'XMLHttpRequest'
+            'Authorization': `Token ${Deno.env.get('ESCAVADOR_API_KEY')}`,
+            'Content-Type': 'application/json'
           },
           signal: AbortSignal.timeout(10000)
         })
 
+        console.log('[Escavador] Response status:', response.status)
+
         if (response.ok) {
           const data = await response.json()
+          console.log('[Escavador] Response data:', JSON.stringify(data))
+          
           balances.escavador = {
             success: true,
             balance: data.saldo || data.balance || 0,
@@ -119,13 +136,18 @@ serve(async (req) => {
             lastCheck: new Date().toISOString()
           }
         } else {
+          const errorText = await response.text()
+          console.error('[Escavador] Error response:', errorText)
+          
           balances.escavador = {
             success: false,
-            error: `HTTP ${response.status}`,
+            error: `HTTP ${response.status}: ${errorText.substring(0, 100)}`,
             lastCheck: new Date().toISOString()
           }
         }
       } catch (error) {
+        console.error('[Escavador] Exception:', error)
+        
         balances.escavador = {
           success: false,
           error: error instanceof Error ? error.message : 'Unknown error',

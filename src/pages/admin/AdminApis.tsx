@@ -6,12 +6,15 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { RefreshCw, Activity, AlertCircle } from "lucide-react"
 import { AdminTable } from "@/components/admin/AdminTable"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
 const AdminApis = () => {
   const [balances, setBalances] = useState<any>(null)
   const [configs, setConfigs] = useState<any[]>([])
+  const [logs, setLogs] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
+  const [logsLoading, setLogsLoading] = useState(false)
   const { toast } = useToast()
 
   useEffect(() => {
@@ -35,6 +38,22 @@ const AdminApis = () => {
       })
     } finally {
       setLoading(false)
+    }
+  }
+
+  const loadLogs = async () => {
+    setLogsLoading(true)
+    try {
+      const data: any = await AdminApiService.getApiLogs()
+      setLogs(data.logs || [])
+    } catch (error) {
+      toast({
+        title: "Erro ao carregar logs",
+        description: error instanceof Error ? error.message : "Erro desconhecido",
+        variant: "destructive"
+      })
+    } finally {
+      setLogsLoading(false)
     }
   }
 
@@ -96,6 +115,50 @@ const AdminApis = () => {
       render: (config: any) => config.last_health_check 
         ? new Date(config.last_health_check).toLocaleString('pt-BR')
         : "Nunca"
+    }
+  ]
+
+  const logColumns = [
+    {
+      key: "created_at",
+      label: "Data/Hora",
+      render: (log: any) => new Date(log.created_at).toLocaleString('pt-BR')
+    },
+    {
+      key: "action",
+      label: "Ação",
+      render: (log: any) => (
+        <Badge variant="outline">{log.action}</Badge>
+      )
+    },
+    {
+      key: "log_type",
+      label: "Tipo",
+      render: (log: any) => {
+        const variants: Record<string, "default" | "secondary" | "destructive"> = {
+          api_call: "default",
+          admin_action: "secondary",
+          error: "destructive"
+        }
+        return <Badge variant={variants[log.log_type] || "default"}>{log.log_type}</Badge>
+      }
+    },
+    {
+      key: "metadata",
+      label: "Detalhes",
+      render: (log: any) => (
+        <div className="text-xs max-w-md truncate">
+          {log.metadata?.provider && (
+            <span className="font-semibold">{log.metadata.provider}: </span>
+          )}
+          {log.metadata?.error && (
+            <span className="text-red-600">{log.metadata.error}</span>
+          )}
+          {log.metadata?.balances && (
+            <span>Saldos verificados</span>
+          )}
+        </div>
+      )
     }
   ]
 
@@ -202,13 +265,52 @@ const AdminApis = () => {
         </Card>
       </div>
 
-      <div>
-        <h2 className="text-xl font-semibold mb-4">Configurações de APIs</h2>
-        <AdminTable
-          data={configs}
-          columns={columns}
-        />
-      </div>
+      <Tabs defaultValue="configs" className="w-full">
+        <TabsList>
+          <TabsTrigger value="configs">Configurações</TabsTrigger>
+          <TabsTrigger value="logs" onClick={loadLogs}>Logs de API</TabsTrigger>
+        </TabsList>
+        
+        <TabsContent value="configs" className="mt-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Configurações de APIs</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <AdminTable
+                data={configs}
+                columns={columns}
+              />
+            </CardContent>
+          </Card>
+        </TabsContent>
+        
+        <TabsContent value="logs" className="mt-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center justify-between">
+                <span>Logs de Chamadas de API</span>
+                <Button onClick={loadLogs} disabled={logsLoading} size="sm" variant="outline">
+                  <RefreshCw className={`h-3 w-3 mr-2 ${logsLoading ? 'animate-spin' : ''}`} />
+                  Atualizar
+                </Button>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {logsLoading ? (
+                <div className="flex items-center justify-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                </div>
+              ) : (
+                <AdminTable
+                  data={logs}
+                  columns={logColumns}
+                />
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   )
 }
