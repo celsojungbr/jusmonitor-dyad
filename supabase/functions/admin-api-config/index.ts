@@ -32,13 +32,14 @@ serve(async (req) => {
     }
 
     // Verificar se usuário é admin
-    const { data: profile } = await supabaseClient
-      .from('profiles')
-      .select('user_type')
-      .eq('id', userId)
+    const { data: roles } = await supabaseClient
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', userId)
+      .eq('role', 'admin')
       .single()
 
-    if (!profile || profile.user_type !== 'admin') {
+    if (!roles) {
       return new Response(
         JSON.stringify({ error: 'Unauthorized - Admin access required' }),
         { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
