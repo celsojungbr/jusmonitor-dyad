@@ -226,7 +226,7 @@ const Consultas = () => {
       if (data.tipoIdentificador === 'cpf' || data.tipoIdentificador === 'cnpj') {
         console.log('Iniciando busca CPF/CNPJ:', data.valor)
         
-        const response = await supabase.functions.invoke('escavador_consulta_CPF_CNPJ', {
+        const response = await supabase.functions.invoke('search-document-orchestrator', {
           body: {
             userId,
             document: data.valor
@@ -284,7 +284,7 @@ const Consultas = () => {
           data: new Date(),
           fromCache: false,
           creditsConsumed: 0,
-          apiUsed: 'escavador'
+          apiUsed: result.provider || 'unknown'
         }
 
         setBuscas([novaBusca, ...buscas])

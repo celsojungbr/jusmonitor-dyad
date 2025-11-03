@@ -328,6 +328,7 @@ export type Database = {
           api_priority: Json
           enabled_apis: Json
           fallback_enabled: boolean
+          feature_id: string | null
           function_name: string
           id: string
           status: Database["public"]["Enums"]["function_status"]
@@ -337,6 +338,7 @@ export type Database = {
           api_priority?: Json
           enabled_apis?: Json
           fallback_enabled?: boolean
+          feature_id?: string | null
           function_name: string
           id?: string
           status?: Database["public"]["Enums"]["function_status"]
@@ -346,6 +348,7 @@ export type Database = {
           api_priority?: Json
           enabled_apis?: Json
           fallback_enabled?: boolean
+          feature_id?: string | null
           function_name?: string
           id?: string
           status?: Database["public"]["Enums"]["function_status"]
