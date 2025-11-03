@@ -95,7 +95,7 @@ const Consultas = () => {
                 return { buscaId: busca.id, processos: [] }
               }
 
-              const { data: procs, error: procsError } = await query.order('created_at', { ascending: false })
+              const { data: procs, error: procsError } = await query.order('distribution_date', { ascending: false })
 
               if (procsError) {
                 console.error(`Erro ao carregar processos para busca ${busca.id}:`, procsError)
@@ -161,6 +161,7 @@ const Consultas = () => {
             .from('processes')
             .select('*')
             .filter('parties_cpf_cnpj', 'cs', jsonArray)
+            .order('distribution_date', { ascending: false })
 
           // Garantir que os tipos estão corretos
           const processes: Process[] = (rawProcesses || []).map(p => ({
