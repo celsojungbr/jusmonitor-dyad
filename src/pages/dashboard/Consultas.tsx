@@ -251,13 +251,13 @@ const Consultas = () => {
           if (result.error === 'Unauthenticated') {
             toast({
               title: "Erro de autenticação",
-              description: "Problema com as credenciais da API Escavador",
+              description: "Problema com as credenciais da API de busca",
               variant: "destructive",
             })
           } else if (result.error.includes('saldo')) {
             toast({
               title: "Sem créditos na API",
-              description: "Você não possui saldo em crédito da API Escavador",
+              description: "Você não possui saldo para realizar esta busca",
               variant: "destructive",
             })
           } else if (result.error.includes('Timeout')) {
@@ -289,20 +289,60 @@ const Consultas = () => {
 
         setBuscas([novaBusca, ...buscas])
 
-        // Mapear items do Escavador v2 para formato Process
-        const processosMapeados: Process[] = (result.items || []).map((item: any) => ({
-          id: item.numero_cnj,
-          cnj_number: item.numero_cnj,
-          tribunal: item.fontes?.[0]?.sigla || item.fontes?.[0]?.tribunal?.sigla || 'Desconhecido',
-          court_name: item.fontes?.[0]?.nome || null,
-          distribution_date: item.data_inicio || null,
-          status: item.fontes?.[0]?.status_predito || item.fontes?.[0]?.capa?.situacao || 'Encontrado',
-          author_names: item.titulo_polo_ativo ? [item.titulo_polo_ativo] : [],
-          defendant_names: item.titulo_polo_passivo ? [item.titulo_polo_passivo] : [],
-          parties_cpf_cnpj: [data.valor.replace(/\D/g, '')],
-          last_update: new Date().toISOString(),
-          created_at: new Date().toISOString(),
-        }))
+        // Detectar formato da resposta (JUDiT ou Escavador)
+        let processosMapeados: Process[] = []
+
+        if (result.lawsuits) {
+          // Formato JUDiT
+          console.log('Processando resultados JUDiT:', result.lawsuits.length)
+          
+          processosMapeados = result.lawsuits.map((lawsuit: any) => {
+            const authors = lawsuit.parties
+              ?.filter((p: any) => p.side === 'Active')
+              .map((p: any) => p.name) || []
+            
+            const defendants = lawsuit.parties
+              ?.filter((p: any) => p.side === 'Passive')
+              .map((p: any) => p.name) || []
+            
+            const documents = lawsuit.parties
+              ?.filter((p: any) => p.document)
+              .map((p: any) => p.document) || []
+
+            return {
+              id: lawsuit.code,
+              cnj_number: lawsuit.code,
+              tribunal: lawsuit.tribunal_acronym || 'Desconhecido',
+              court_name: lawsuit.courts?.[0]?.name || null,
+              distribution_date: lawsuit.distribution_date || null,
+              status: lawsuit.status || 'Encontrado',
+              phase: lawsuit.phase || null,
+              case_value: lawsuit.amount || null,
+              author_names: authors,
+              defendant_names: defendants,
+              parties_cpf_cnpj: documents.length > 0 ? documents : [data.valor.replace(/\D/g, '')],
+              last_update: new Date().toISOString(),
+              created_at: new Date().toISOString(),
+            } as Process
+          })
+        } else if (result.items) {
+          // Formato Escavador
+          console.log('Processando resultados Escavador:', result.items.length)
+          
+          processosMapeados = result.items.map((item: any) => ({
+            id: item.numero_cnj,
+            cnj_number: item.numero_cnj,
+            tribunal: item.fontes?.[0]?.sigla || item.fontes?.[0]?.tribunal?.sigla || 'Desconhecido',
+            court_name: item.fontes?.[0]?.nome || null,
+            distribution_date: item.data_inicio || null,
+            status: item.fontes?.[0]?.status_predito || item.fontes?.[0]?.capa?.situacao || 'Encontrado',
+            author_names: item.titulo_polo_ativo ? [item.titulo_polo_ativo] : [],
+            defendant_names: item.titulo_polo_passivo ? [item.titulo_polo_passivo] : [],
+            parties_cpf_cnpj: [data.valor.replace(/\D/g, '')],
+            last_update: new Date().toISOString(),
+            created_at: new Date().toISOString(),
+          })) as Process[]
+        }
 
         setProcessosCache(prev => ({ ...prev, [buscaId]: processosMapeados }))
 
@@ -315,8 +355,8 @@ const Consultas = () => {
         })
 
         toast({
-          title: "Busca simples concluída (gratuita)",
-          description: `${result.results_count} processo(s) encontrado(s) no Escavador`,
+          title: "Busca concluída",
+          description: `${result.results_count} processo(s) encontrado(s)`,
         })
       } else {
         // Para CNJ/OAB: usar lógica anterior
@@ -561,7 +601,7 @@ const Consultas = () => {
           <CardHeader>
             <CardTitle>Busca Simples Concluída</CardTitle>
             <CardDescription>
-              Encontramos {simpleSearchResult.resultsCount} processo(s) nos diários oficiais (gratuito)
+              Encontramos {simpleSearchResult.resultsCount} processo(s) em consulta rápida
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">

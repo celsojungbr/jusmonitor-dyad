@@ -231,7 +231,7 @@ Deno.serve(async (req) => {
           credits_consumed: 0,
           results_count: 0,
           from_cache: true,
-          api_used: 'judit_hot_storage'
+          api_used: 'judit'
         })
 
         return new Response(
@@ -240,7 +240,7 @@ Deno.serve(async (req) => {
             results_count: 0,
             lawsuits: [],
             from_cache: true,
-            provider: 'judit_hot_storage',
+            provider: 'judit',
             request_id: requestId,
             message: 'Nenhum processo encontrado no Hot Storage'
           }),
@@ -291,7 +291,7 @@ Deno.serve(async (req) => {
       credits_consumed: 0,
       results_count: allProcesses.length,
       from_cache: true,
-      api_used: 'judit_hot_storage'
+      api_used: 'judit'
     })
 
     // PASSO 5: Persistir processos no banco
@@ -322,7 +322,7 @@ Deno.serve(async (req) => {
       }
 
       // Upsert no banco
-      await supabase.from('processes').upsert({
+      const { error: upsertError } = await supabase.from('processes').upsert({
         cnj_number: processData.code,
         tribunal: processData.tribunal_acronym || 'Desconhecido',
         court_name: processData.courts?.[0]?.name || null,
@@ -334,12 +334,16 @@ Deno.serve(async (req) => {
         author_names: authors.length > 0 ? authors : null,
         defendant_names: defendants.length > 0 ? defendants : null,
         last_searched_by: userId,
-        source_api: 'judit_hot_storage',
+        source_api: 'judit',
         last_update: new Date().toISOString()
       }, {
         onConflict: 'cnj_number,tribunal',
         ignoreDuplicates: false
       })
+
+      if (upsertError) {
+        console.error(`[JUDiT Hot Storage] Erro ao salvar processo ${processData.code}:`, upsertError)
+      }
     }
 
     console.log('[JUDiT Hot Storage] Busca concluída com sucesso')
@@ -350,7 +354,7 @@ Deno.serve(async (req) => {
         results_count: allProcesses.length,
         lawsuits: allProcesses.map(p => p.response_data),
         from_cache: true,
-        provider: 'judit_hot_storage',
+        provider: 'judit',
         request_id: requestId,
         all_pages_count: allPagesCount,
         credits_consumed: 0,
