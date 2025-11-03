@@ -60,7 +60,7 @@ serve(async (req) => {
     const juditConfig = configs?.find(c => c.api_name === 'judit')
     if (juditConfig) {
       try {
-        const response = await fetch(`${juditConfig.endpoint_url}/v1/resource-consumption`, {
+        const response = await fetch(`${juditConfig.endpoint_url}/resource-consumption`, {
           method: 'GET',
           headers: {
             'Authorization': `Bearer ${Deno.env.get('JUDIT_API_KEY')}`,
@@ -98,7 +98,7 @@ serve(async (req) => {
     const escavadorConfig = configs?.find(c => c.api_name === 'escavador')
     if (escavadorConfig) {
       try {
-        const response = await fetch(`${escavadorConfig.endpoint_url}/v1/saldo`, {
+        const response = await fetch(`${escavadorConfig.endpoint_url}/saldo`, {
           method: 'GET',
           headers: {
             'Authorization': `Token ${Deno.env.get('ESCAVADOR_API_KEY')}`,
