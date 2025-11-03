@@ -65,6 +65,21 @@ export class MonitoramentoService {
     const userId = await ApiClient.getCurrentUserId()
     const { supabase } = await import('@/integrations/supabase/client')
 
+    // First get the user's monitoring IDs
+    const { data: monitorings, error: monitoringError } = await supabase
+      .from('monitorings')
+      .select('id')
+      .eq('user_id', userId)
+
+    if (monitoringError) throw monitoringError
+
+    const monitoringIds = monitorings?.map(m => m.id) || []
+
+    if (monitoringIds.length === 0) {
+      return []
+    }
+
+    // Then get the unread alerts for those monitorings
     const { data, error } = await supabase
       .from('monitoring_alerts')
       .select(`
@@ -72,12 +87,7 @@ export class MonitoramentoService {
         monitoring:monitorings(*)
       `)
       .eq('is_read', false)
-      .in('monitoring_id',
-        supabase
-          .from('monitorings')
-          .select('id')
-          .eq('user_id', userId)
-      )
+      .in('monitoring_id', monitoringIds)
       .order('created_at', { ascending: false })
 
     if (error) throw error

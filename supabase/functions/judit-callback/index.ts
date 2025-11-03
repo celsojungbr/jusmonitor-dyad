@@ -327,7 +327,7 @@ serve(async (req) => {
         .from('callback_logs')
         .update({
           processing_status: 'failed',
-          error_message: error.message,
+          error_message: error instanceof Error ? error.message : 'Unknown error',
           processing_time_ms: Date.now() - startTime,
           processed_at: new Date().toISOString()
         })
@@ -335,7 +335,7 @@ serve(async (req) => {
     }
 
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: error instanceof Error ? error.message : 'Unknown error' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
   }

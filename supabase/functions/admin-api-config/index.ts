@@ -206,7 +206,7 @@ serve(async (req) => {
             success: false,
             status: 'unreachable',
             latency_ms: latency,
-            message: error.message
+            message: error instanceof Error ? error.message : 'Unknown error'
           }),
           { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         )
@@ -281,7 +281,7 @@ serve(async (req) => {
   } catch (error) {
     console.error('Error in admin-api-config:', error)
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: error instanceof Error ? error.message : 'Unknown error' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
   }
