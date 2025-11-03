@@ -117,4 +117,24 @@ export class ConsultaService {
       request
     )
   }
+
+  // Métodos específicos para provedores individuais
+  static async searchEscavadorDocument(document: string) {
+    const userId = await ApiClient.getCurrentUserId()
+
+    return ApiClient.callEdgeFunction('escavador_consulta_CPF_CNPJ', {
+      userId,
+      document
+    })
+  }
+
+  static async searchJuditDocument(document: string) {
+    const userId = await ApiClient.getCurrentUserId()
+
+    return ApiClient.callEdgeFunction('judit-search-document', {
+      userId,
+      document
+    })
+  }
 }
+

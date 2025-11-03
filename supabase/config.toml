@@ -6,6 +6,9 @@ verify_jwt = true
 [functions.escavador_consulta_CPF_CNPJ]
 verify_jwt = true
 
+[functions.judit-search-document]
+verify_jwt = true
+
 [functions.ai-chat-process]
 verify_jwt = true
 

@@ -11,7 +11,13 @@ export const FEATURES_CONFIG: Feature[] = [
         displayName: 'Escavador - Consulta CPF/CNPJ',
         availableProviders: [
           { name: 'escavador', displayName: 'Escavador' }
-          // Futuramente: { name: 'judit', displayName: 'JUDiT' }
+        ]
+      },
+      {
+        functionName: 'judit-search-document',
+        displayName: 'JUDiT - Consulta por Documento',
+        availableProviders: [
+          { name: 'judit', displayName: 'JUDiT' }
         ]
       }
     ]
