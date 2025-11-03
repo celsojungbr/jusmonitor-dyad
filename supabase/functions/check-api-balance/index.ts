@@ -60,10 +60,10 @@ serve(async (req) => {
     const juditConfig = configs?.find(c => c.api_name === 'judit')
     if (juditConfig) {
       try {
-        const response = await fetch(`${juditConfig.endpoint_url}/resource-consumption`, {
+        const response = await fetch(`${juditConfig.endpoint_url}/requests?page_size=1`, {
           method: 'GET',
           headers: {
-            'Authorization': `Bearer ${Deno.env.get('JUDIT_API_KEY')}`,
+            'api-key': Deno.env.get('JUDIT_API_KEY') || '',
             'Content-Type': 'application/json'
           },
           signal: AbortSignal.timeout(10000)
@@ -73,10 +73,11 @@ serve(async (req) => {
           const data = await response.json()
           balances.judit = {
             success: true,
-            balance: data.remaining_credits || data.credits || 0,
-            consumed: data.consumed_credits || 0,
-            total: data.total_credits || 0,
-            lastCheck: new Date().toISOString()
+            balance: data.total_count || 0,
+            consumed: 0,
+            total: data.total_count || 0,
+            lastCheck: new Date().toISOString(),
+            message: 'JUDiT API operacional'
           }
         } else {
           balances.judit = {
@@ -101,8 +102,9 @@ serve(async (req) => {
         const response = await fetch(`${escavadorConfig.endpoint_url}/saldo`, {
           method: 'GET',
           headers: {
-            'Authorization': `Token ${Deno.env.get('ESCAVADOR_API_KEY')}`,
-            'Content-Type': 'application/json'
+            'Authorization': `Bearer ${Deno.env.get('ESCAVADOR_API_KEY')}`,
+            'Content-Type': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest'
           },
           signal: AbortSignal.timeout(10000)
         })
