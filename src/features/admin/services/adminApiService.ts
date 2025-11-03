@@ -206,6 +206,44 @@ export class AdminApiService {
     return ApiClient.callEdgeFunction('check-api-balance', { userId })
   }
 
+  static async getFeatureConfigs() {
+    const { supabase } = await import('@/integrations/supabase/client')
+    
+    const { data, error } = await supabase
+      .from('edge_function_config')
+      .select('*')
+      .order('function_name')
+    
+    if (error) throw error
+    return data
+  }
+
+  static async updateFeatureConfig(
+    functionName: string,
+    enabledApis: string[],
+    apiPriority: string[],
+    fallbackEnabled: boolean,
+    status: 'active' | 'inactive'
+  ) {
+    const { supabase } = await import('@/integrations/supabase/client')
+    
+    const { data, error } = await supabase
+      .from('edge_function_config')
+      .update({
+        enabled_apis: enabledApis,
+        api_priority: apiPriority,
+        fallback_enabled: fallbackEnabled,
+        status,
+        updated_at: new Date().toISOString()
+      })
+      .eq('function_name', functionName)
+      .select()
+      .single()
+    
+    if (error) throw error
+    return data
+  }
+
   static async getApiLogs(logType?: string, provider?: string, limit?: number) {
     const userId = await ApiClient.getCurrentUserId()
     

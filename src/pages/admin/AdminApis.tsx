@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react"
-import { AdminApiService } from "@/features/admin"
+import { AdminApiService, FeatureManagement } from "@/features/admin"
 import { useToast } from "@/hooks/use-toast"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -265,11 +265,12 @@ const AdminApis = () => {
         </Card>
       </div>
 
-      <Tabs defaultValue="configs" className="w-full">
-        <TabsList>
-          <TabsTrigger value="configs">Configurações</TabsTrigger>
-          <TabsTrigger value="logs" onClick={loadLogs}>Logs de API</TabsTrigger>
-        </TabsList>
+        <Tabs defaultValue="configs" className="w-full">
+          <TabsList>
+            <TabsTrigger value="configs">Configurações</TabsTrigger>
+            <TabsTrigger value="logs" onClick={loadLogs}>Logs de API</TabsTrigger>
+            <TabsTrigger value="features">Gestão de Processos</TabsTrigger>
+          </TabsList>
         
         <TabsContent value="configs" className="mt-4">
           <Card>
@@ -309,6 +310,10 @@ const AdminApis = () => {
               )}
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="features" className="mt-4">
+          <FeatureManagement />
         </TabsContent>
       </Tabs>
     </div>
