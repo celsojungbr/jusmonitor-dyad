@@ -136,5 +136,14 @@ export class ConsultaService {
       document
     })
   }
+
+  static async searchJuditHotStorage(document: string) {
+    const userId = await ApiClient.getCurrentUserId()
+
+    return ApiClient.callEdgeFunction('judit_consulta_hot_storage', {
+      userId,
+      document
+    })
+  }
 }
 

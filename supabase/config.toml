@@ -9,6 +9,9 @@ verify_jwt = true
 [functions.judit-search-document]
 verify_jwt = true
 
+[functions.judit_consulta_hot_storage]
+verify_jwt = true
+
 [functions.ai-chat-process]
 verify_jwt = true
 
