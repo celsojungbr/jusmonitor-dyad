@@ -104,18 +104,38 @@ Deno.serve(async (req) => {
       throw new Error('ESCAVADOR_API_KEY não configurada')
     }
 
-    // Fazer requisição ao Escavador v2
-    const response = await fetch(escavadorUrl.toString(), {
-      method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${escavadorApiKey}`,
-        'X-Requested-With': 'XMLHttpRequest',
-        'Accept': 'application/json',
-        'Content-Type': 'application/json',
-      },
-    })
+    // Fazer requisição ao Escavador v2 com timeout de 25 segundos
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), 25000)
 
-    console.log(`[Escavador CPF/CNPJ] Status da API: ${response.status}`)
+    let response: Response
+    try {
+      response = await fetch(escavadorUrl.toString(), {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${escavadorApiKey}`,
+          'X-Requested-With': 'XMLHttpRequest',
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+        },
+        signal: controller.signal,
+      })
+
+      clearTimeout(timeoutId)
+      console.log(`[Escavador CPF/CNPJ] Status da API: ${response.status}`)
+    } catch (fetchError: any) {
+      clearTimeout(timeoutId)
+      
+      if (fetchError.name === 'AbortError') {
+        console.error('[Escavador CPF/CNPJ] Timeout após 25 segundos')
+        return new Response(
+          JSON.stringify({ error: 'Timeout: A API Escavador não respondeu a tempo' }),
+          { status: 504, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
+      
+      throw fetchError
+    }
 
     // Tratamento de erros específicos
     if (response.status === 401) {

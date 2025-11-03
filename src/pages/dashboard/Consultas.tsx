@@ -109,6 +109,8 @@ const Consultas = () => {
 
       // Para CPF/CNPJ: usar nova função Escavador v2
       if (data.tipoIdentificador === 'cpf' || data.tipoIdentificador === 'cnpj') {
+        console.log('Iniciando busca CPF/CNPJ:', data.valor)
+        
         const response = await supabase.functions.invoke('escavador_consulta_CPF_CNPJ', {
           body: {
             userId,
@@ -116,9 +118,18 @@ const Consultas = () => {
           }
         })
 
-        if (response.error) throw response.error
+        console.log('Resposta da função:', response)
+
+        if (response.error) {
+          console.error('Erro na invocação:', response.error)
+          throw response.error
+        }
 
         const result = response.data
+
+        if (!result) {
+          throw new Error('Resposta vazia da API')
+        }
 
         // Tratar erros específicos
         if (result.error) {
@@ -134,11 +145,19 @@ const Consultas = () => {
               description: "Você não possui saldo em crédito da API Escavador",
               variant: "destructive",
             })
+          } else if (result.error.includes('Timeout')) {
+            toast({
+              title: "Tempo esgotado",
+              description: "A busca demorou muito. Tente novamente.",
+              variant: "destructive",
+            })
           } else {
             throw new Error(result.error)
           }
           return
         }
+
+        console.log('Resultados encontrados:', result.results_count)
 
         const buscaId = Date.now().toString()
         const novaBusca: Busca = {
