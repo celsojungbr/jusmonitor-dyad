@@ -93,9 +93,11 @@ Deno.serve(async (req) => {
 
     // Montar URL do Escavador v2
     const escavadorUrl = new URL('https://api.escavador.com/api/v2/envolvido/processos')
-    escavadorUrl.searchParams.append(docType, normalizedDoc)
-    escavadorUrl.searchParams.append('ordem', 'desc')  // ordem: asc|desc
-    escavadorUrl.searchParams.append('limit', '20')    // paginação opcional
+    escavadorUrl.searchParams.append('cpf_cnpj', normalizedDoc)
+    escavadorUrl.searchParams.append('ordem', 'desc')
+    escavadorUrl.searchParams.append('limit', '100')  // mínimo 50, múltiplo de 50
+    
+    console.log('[Escavador CPF/CNPJ] URL da requisição:', escavadorUrl.toString())
 
     console.log(`[Escavador CPF/CNPJ] URL: ${escavadorUrl.toString()}`)
 
