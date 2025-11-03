@@ -1,5 +1,5 @@
 import { SidebarProvider, Sidebar, SidebarContent, SidebarHeader, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarTrigger } from "@/components/ui/sidebar";
-import { Search, FileText, Bell, Key, CreditCard, User, Settings, LogOut } from "lucide-react";
+import { Search, Bell, Key, CreditCard, User, Settings, LogOut } from "lucide-react";
 import { Outlet, Link, useLocation, useNavigate } from "react-router-dom";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -11,7 +11,6 @@ import avatarIcon from "@/assets/avatar-icon.png";
 
 const navigation = [
   { name: "Consultas", href: "/dashboard/consultas", icon: Search },
-  { name: "Processos", href: "/dashboard/processos", icon: FileText },
   { name: "Monitoramentos", href: "/dashboard/monitoramentos", icon: Bell },
   { name: "Senhas", href: "/dashboard/senhas", icon: Key },
   { name: "Planos", href: "/dashboard/planos", icon: CreditCard },
