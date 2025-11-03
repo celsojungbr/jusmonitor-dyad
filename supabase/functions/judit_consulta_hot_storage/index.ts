@@ -103,7 +103,7 @@ Deno.serve(async (req) => {
       )
     }
 
-    // PASSO 1: Criar request na JUDiT
+    // Chamar API /lawsuits (síncrona, retorna status e phase diretamente)
     const requestPayload = {
       search: {
         search_type: searchType,
@@ -112,13 +112,13 @@ Deno.serve(async (req) => {
           masked_response: false
         }
       },
-      process_status: true  // Obter status e phase dos processos
+      process_status: true  // ⭐ Obter status e phase dos processos
     }
 
-    console.log('[JUDiT Hot Storage] Criando request na JUDiT...')
+    console.log('[JUDiT Hot Storage] Chamando API /lawsuits...')
 
-    const createRequestResponse = await fetch(
-      'https://requests.prod.judit.io/requests',
+    const lawsuitsResponse = await fetch(
+      'https://lawsuits.production.judit.io/lawsuits',
       {
         method: 'POST',
         headers: {
@@ -129,18 +129,18 @@ Deno.serve(async (req) => {
       }
     )
 
-    if (!createRequestResponse.ok) {
-      const errorText = await createRequestResponse.text()
-      console.error('[JUDiT Hot Storage] Erro ao criar request:', createRequestResponse.status, errorText)
+    if (!lawsuitsResponse.ok) {
+      const errorText = await lawsuitsResponse.text()
+      console.error('[JUDiT Hot Storage] Erro:', lawsuitsResponse.status, errorText)
 
-      if (createRequestResponse.status === 401) {
+      if (lawsuitsResponse.status === 401) {
         return new Response(
           JSON.stringify({ error: 'API Key inválida ou não autorizada' }),
           { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         )
       }
 
-      if (createRequestResponse.status === 402) {
+      if (lawsuitsResponse.status === 402) {
         return new Response(
           JSON.stringify({ error: 'Sem créditos disponíveis na API JUDiT' }),
           { status: 402, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -148,180 +148,57 @@ Deno.serve(async (req) => {
       }
 
       return new Response(
-        JSON.stringify({ error: `Erro ao criar request: ${errorText}` }),
-        { status: createRequestResponse.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        JSON.stringify({ error: `Erro na API: ${errorText}` }),
+        { status: lawsuitsResponse.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
-    const createRequestData = await createRequestResponse.json()
-    const requestId = createRequestData.request_id
+    const lawsuitsData = await lawsuitsResponse.json()
 
-    console.log('[JUDiT Hot Storage] Request ID criado:', requestId)
+    console.log('[JUDiT Hot Storage] Resposta recebida:', {
+      has_lawsuits: lawsuitsData.has_lawsuits,
+      total: lawsuitsData.response_data?.length || 0
+    })
 
-    // PASSO 2: Polling do status (máximo 60 segundos, check a cada 2 segundos)
-    const maxAttempts = 30 // 30 attempts x 2 seconds = 60 seconds
-    const pollInterval = 2000
-    let currentAttempt = 0
-    let requestStatus = 'pending'
+    // Verificar se encontrou processos
+    if (!lawsuitsData.has_lawsuits || !lawsuitsData.response_data || lawsuitsData.response_data.length === 0) {
+      console.log('[JUDiT Hot Storage] Nenhum processo encontrado')
 
-    while (currentAttempt < maxAttempts && requestStatus !== 'completed') {
-      currentAttempt++
-      console.log(`[JUDiT Hot Storage] Polling status (tentativa ${currentAttempt}/${maxAttempts}):`, requestStatus)
+      await supabase.from('user_searches').insert({
+        user_id: userId,
+        search_type: searchType,
+        search_value: normalizedDoc,
+        credits_consumed: 0,
+        results_count: 0,
+        from_cache: true,
+        api_used: 'judit'
+      })
 
-      await new Promise(resolve => setTimeout(resolve, pollInterval))
-
-      const statusResponse = await fetch(
-        `https://requests.prod.judit.io/requests/${requestId}`,
-        {
-          headers: {
-            'api-key': JUDIT_API_KEY,
-            'Content-Type': 'application/json'
-          }
-        }
-      )
-
-      if (statusResponse.ok) {
-        const statusData = await statusResponse.json()
-        requestStatus = statusData.status
-      }
-    }
-
-    if (requestStatus !== 'completed') {
-      console.error('[JUDiT Hot Storage] Timeout: status não completou em 60 segundos')
       return new Response(
-        JSON.stringify({ 
-          error: 'Timeout', 
-          message: 'A API JUDiT está demorando mais que o esperado. A consulta pode estar sendo processada.',
-          request_id: requestId,
-          status: requestStatus
-        }),
-        { status: 504, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
-    }
-
-    console.log('[JUDiT Hot Storage] Status completed! Buscando resultados...')
-
-    // PASSO 3: Buscar resultados paginados
-    let allProcesses: JuditPageResponse[] = []
-    let currentPage = 1
-    const pageSize = 100
-    let allPagesCount = 1
-
-    // Buscar primeira página para saber quantas páginas existem
-    const firstPageResponse = await fetch(
-      `https://requests.prod.judit.io/responses/?request_id=${requestId}&page=${currentPage}&page_size=${pageSize}&process_status=true`,
-      {
-        headers: {
-          'api-key': JUDIT_API_KEY,
-          'Content-Type': 'application/json'
-        }
-      }
-    )
-
-    if (!firstPageResponse.ok) {
-      const errorText = await firstPageResponse.text()
-      console.error('[JUDiT Hot Storage] Erro ao buscar resultados:', firstPageResponse.status, errorText)
-
-      if (firstPageResponse.status === 404) {
-        // Nenhum processo encontrado
-        console.log('[JUDiT Hot Storage] Nenhum processo encontrado')
-
-        await supabase.from('user_searches').insert({
-          user_id: userId,
-          search_type: searchType,
-          search_value: normalizedDoc,
-          credits_consumed: 0,
+        JSON.stringify({
+          success: true,
           results_count: 0,
+          lawsuits: [],
           from_cache: true,
-          api_used: 'judit'
-        })
-
-        return new Response(
-          JSON.stringify({
-            success: true,
-            results_count: 0,
-            lawsuits: [],
-            from_cache: true,
-            provider: 'judit',
-            request_id: requestId,
-            message: 'Nenhum processo encontrado no Hot Storage'
-          }),
-          { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        )
-      }
-
-      return new Response(
-        JSON.stringify({ error: `Erro ao buscar resultados: ${errorText}` }),
-        { status: firstPageResponse.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          provider: 'judit',
+          message: 'Nenhum processo encontrado no Hot Storage'
+        }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
-    const firstPageData: JuditResponsesResult = await firstPageResponse.json()
-    allPagesCount = firstPageData.all_pages_count || 1
-    allProcesses.push(...firstPageData.page_data)
-
-    console.log('[JUDiT Hot Storage] === RESPOSTA COMPLETA DA API ===')
-    console.log('[JUDiT Hot Storage] Total de páginas:', firstPageData.all_pages_count)
-    console.log('[JUDiT Hot Storage] Total de processos:', firstPageData.all_count)
-
-    // Logar ESTRUTURA COMPLETA do primeiro processo para análise
-    if (firstPageData.page_data && firstPageData.page_data.length > 0) {
-      const firstProcess = firstPageData.page_data[0]
-      console.log('[JUDiT Hot Storage] === ESTRUTURA DO PRIMEIRO PROCESSO ===')
-      console.log('[JUDiT Hot Storage] response_data completo:', JSON.stringify(firstProcess.response_data, null, 2))
-      
-      // Analisar parties em detalhes
-      if (firstProcess.response_data.parties) {
-        console.log('[JUDiT Hot Storage] === ESTRUTURA DE PARTIES ===')
-        firstProcess.response_data.parties.forEach((party, index) => {
-          console.log(`[JUDiT Hot Storage] Party ${index}:`, {
-            name: party.name,
-            side: party.side,
-            person_type: party.person_type,
-            document: party.document,
-            tem_lawyers: !!party.lawyers,
-            lawyers_count: party.lawyers?.length || 0
-          })
-          
-          // Logar advogados se existirem
-          if (party.lawyers && party.lawyers.length > 0) {
-            console.log(`[JUDiT Hot Storage] Advogados da Party ${index}:`, party.lawyers)
-          }
-        })
-      }
-      
-      // Verificar outros campos de status
-      console.log('[JUDiT Hot Storage] === CAMPOS DE STATUS ===')
-      console.log('[JUDiT Hot Storage] status:', firstProcess.response_data.status)
-      console.log('[JUDiT Hot Storage] phase:', firstProcess.response_data.phase)
-      console.log('[JUDiT Hot Storage] request_status:', firstProcess.request_status)
-      console.log('[JUDiT Hot Storage] response_type:', firstProcess.response_type)
-    }
-
-    console.log('[JUDiT Hot Storage] Total de páginas:', allPagesCount)
-    console.log('[JUDiT Hot Storage] Processando página 1 de', allPagesCount)
-
-    // Buscar páginas restantes
-    for (let page = 2; page <= allPagesCount; page++) {
-      console.log('[JUDiT Hot Storage] Processando página', page, 'de', allPagesCount)
-
-      const pageResponse = await fetch(
-        `https://requests.prod.judit.io/responses/?request_id=${requestId}&page=${page}&page_size=${pageSize}&process_status=true`,
-        {
-          headers: {
-            'api-key': JUDIT_API_KEY,
-            'Content-Type': 'application/json'
-          }
-        }
-      )
-
-      if (pageResponse.ok) {
-        const pageData: JuditResponsesResult = await pageResponse.json()
-        allProcesses.push(...pageData.page_data)
-      }
-    }
+    const allProcesses = lawsuitsData.response_data
 
     console.log('[JUDiT Hot Storage] Total de processos encontrados:', allProcesses.length)
+
+    // Logar primeiro processo para verificar status e phase
+    if (allProcesses.length > 0) {
+      console.log('[JUDiT Hot Storage] === PRIMEIRO PROCESSO ===')
+      console.log('[JUDiT Hot Storage] CNJ:', allProcesses[0].code)
+      console.log('[JUDiT Hot Storage] Status:', allProcesses[0].status)
+      console.log('[JUDiT Hot Storage] Phase:', allProcesses[0].phase)
+      console.log('[JUDiT Hot Storage] Parties:', allProcesses[0].parties?.length)
+    }
 
     // PASSO 4: Registrar a busca no histórico
     await supabase.from('user_searches').insert({
@@ -334,12 +211,10 @@ Deno.serve(async (req) => {
       api_used: 'judit'
     })
 
-    // PASSO 5: Persistir processos no banco
+    // Persistir processos no banco
     console.log('[JUDiT Hot Storage] Persistindo processos no banco...')
 
-    for (const processItem of allProcesses) {
-      const processData = processItem.response_data
-
+    for (const processData of allProcesses) {
       if (!processData.code) continue
 
       // LOGGING: Estrutura de cada processo antes de processar
@@ -348,9 +223,7 @@ Deno.serve(async (req) => {
         status_value: processData.status,
         has_phase: !!processData.phase,
         phase_value: processData.phase,
-        parties_count: processData.parties?.length || 0,
-        request_status: processItem.request_status,
-        response_type: processItem.response_type
+        parties_count: processData.parties?.length || 0
       })
 
       // Extrair partes E advogados separadamente
@@ -456,11 +329,9 @@ Deno.serve(async (req) => {
       JSON.stringify({
         success: true,
         results_count: allProcesses.length,
-        lawsuits: allProcesses.map(p => p.response_data),
+        lawsuits: allProcesses,
         from_cache: true,
         provider: 'judit',
-        request_id: requestId,
-        all_pages_count: allPagesCount,
         credits_consumed: 0,
         execution_time_ms: executionTime,
         message: `${allProcesses.length} processo(s) encontrado(s) no Hot Storage`
