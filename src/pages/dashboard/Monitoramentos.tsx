@@ -1,9 +1,16 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Play, Pause, Trash2 } from "lucide-react";
+import { Plus, Play, Pause, Trash2, Eye } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 const Monitoramentos = () => {
+  const navigate = useNavigate();
+
+  const handleVerDetalhes = (cnjNumber: string) => {
+    navigate(`/dashboard/processo/${cnjNumber}`);
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -41,13 +48,17 @@ const Monitoramentos = () => {
       </div>
 
       <div className="space-y-3">
-        {[1, 2, 3].map((item) => (
-          <Card key={item}>
+        {[
+          { id: 1, cnj: "0000000-01.2024.8.26.0001" },
+          { id: 2, cnj: "0000000-02.2024.8.26.0002" },
+          { id: 3, cnj: "0000000-03.2024.8.26.0003" }
+        ].map((item) => (
+          <Card key={item.id} className="animate-fade-in">
             <CardContent className="p-6">
               <div className="flex items-start justify-between gap-4">
                 <div className="flex-1">
-                  <div className="flex items-center gap-3 mb-2">
-                    <h3 className="font-semibold">Processo 0000000-00.2024.8.26.0000</h3>
+                  <div className="flex items-center gap-3 mb-2 flex-wrap">
+                    <h3 className="font-semibold">Processo {item.cnj}</h3>
                     <Badge>Ativo</Badge>
                     <Badge variant="outline">TJ-SP</Badge>
                   </div>
@@ -64,13 +75,24 @@ const Monitoramentos = () => {
                   </div>
                 </div>
                 
-                <div className="flex gap-2">
-                  <Button size="sm" variant="outline">
-                    <Pause className="w-4 h-4" />
+                <div className="flex flex-col gap-2">
+                  <Button 
+                    size="sm" 
+                    variant="outline"
+                    onClick={() => handleVerDetalhes(item.cnj)}
+                    className="hover-scale"
+                  >
+                    <Eye className="w-4 h-4 mr-2" />
+                    Ver Detalhes
                   </Button>
-                  <Button size="sm" variant="outline">
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button size="sm" variant="outline">
+                      <Pause className="w-4 h-4" />
+                    </Button>
+                    <Button size="sm" variant="outline">
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
                 </div>
               </div>
             </CardContent>
