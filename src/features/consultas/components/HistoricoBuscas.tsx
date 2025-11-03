@@ -6,9 +6,10 @@ import { Separator } from "@/components/ui/separator"
 interface HistoricoBuscasProps {
   buscas: Busca[]
   getProcessosByBusca?: (buscaId: string) => Process[]
+  onOcultarBusca?: (buscaId: string) => void
 }
 
-export const HistoricoBuscas = ({ buscas, getProcessosByBusca }: HistoricoBuscasProps) => {
+export const HistoricoBuscas = ({ buscas, getProcessosByBusca, onOcultarBusca }: HistoricoBuscasProps) => {
   if (buscas.length === 0) {
     return (
       <div className="text-center py-12">
@@ -54,6 +55,7 @@ export const HistoricoBuscas = ({ buscas, getProcessosByBusca }: HistoricoBuscas
             key={busca.id}
             busca={busca}
             processos={getProcessosByBusca ? getProcessosByBusca(busca.id) : []}
+            onOcultar={onOcultarBusca}
           />
         ))}
       </div>

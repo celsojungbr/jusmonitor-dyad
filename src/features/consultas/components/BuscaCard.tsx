@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
-import { ChevronDown, ChevronUp, FileText, User, Scale } from "lucide-react"
+import { ChevronDown, ChevronUp, FileText, User, Scale, Trash2 } from "lucide-react"
 import { Busca } from "../types/consulta.types"
 import { ResultadosDetalhes } from "./ResultadosDetalhes"
 import { Process } from "@/shared/types/database.types"
@@ -13,9 +13,10 @@ import { Process } from "@/shared/types/database.types"
 interface BuscaCardProps {
   busca: Busca
   processos?: Process[]
+  onOcultar?: (buscaId: string) => void
 }
 
-export const BuscaCard = ({ busca, processos = [] }: BuscaCardProps) => {
+export const BuscaCard = ({ busca, processos = [], onOcultar }: BuscaCardProps) => {
   const [isOpen, setIsOpen] = useState(false)
   const [showOnlyActive, setShowOnlyActive] = useState(true)
 
@@ -83,7 +84,7 @@ export const BuscaCard = ({ busca, processos = [] }: BuscaCardProps) => {
                 </div>
               </div>
 
-              <div className="flex items-center gap-4 flex-wrap">
+              <div className="flex items-center gap-2 flex-wrap">
                 <div className="flex items-center gap-2">
                   <Switch 
                     id={`filter-${busca.id}`}
@@ -95,19 +96,35 @@ export const BuscaCard = ({ busca, processos = [] }: BuscaCardProps) => {
                   </Label>
                 </div>
                 
-                <Button variant="ghost" size="sm">
-                  {isOpen ? (
-                    <>
-                      <ChevronUp className="w-4 h-4 mr-2" />
-                      Ocultar
-                    </>
-                  ) : (
-                    <>
-                      <ChevronDown className="w-4 h-4 mr-2" />
-                      Ver Detalhes
-                    </>
+                <div className="flex items-center gap-2">
+                  <Button variant="ghost" size="sm">
+                    {isOpen ? (
+                      <>
+                        <ChevronUp className="w-4 h-4 mr-2" />
+                        Ocultar
+                      </>
+                    ) : (
+                      <>
+                        <ChevronDown className="w-4 h-4 mr-2" />
+                        Ver Detalhes
+                      </>
+                    )}
+                  </Button>
+
+                  {onOcultar && (
+                    <Button 
+                      variant="ghost" 
+                      size="icon"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        onOcultar(busca.id)
+                      }}
+                      className="h-9 w-9 text-muted-foreground hover:text-destructive"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
                   )}
-                </Button>
+                </div>
               </div>
             </div>
           </CollapsibleTrigger>

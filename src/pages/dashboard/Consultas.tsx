@@ -17,6 +17,7 @@ const Consultas = () => {
   const [processosCache, setProcessosCache] = useState<Record<string, Process[]>>({})
   const [dadosCadastraisCache, setDadosCadastraisCache] = useState<Record<string, any>>({})
   const [dadosPenaisCache, setDadosPenaisCache] = useState<Record<string, any>>({})
+  const [buscasOcultas, setBuscasOcultas] = useState<Set<string>>(new Set()) // IDs das buscas ocultadas pelo usuário
   
   // Estado para busca simples e aprofundamento
   const [simpleSearchResult, setSimpleSearchResult] = useState<any>(null)
@@ -73,23 +74,14 @@ const Consultas = () => {
 
         // Carregar processos relacionados para cada busca processual
         const processosPromises = buscasCarregadas
-          .filter(b => b.tipo === 'processual')
+          .filter(b => b.tipo === 'processual' && b.resultados > 0) // Apenas buscas com resultados
           .map(async (busca) => {
-            const { data: userProcs } = await supabase
-              .from('user_processes')
-              .select('process_id')
-              .eq('user_id', userId)
-              .limit(100)
-
-            if (!userProcs || userProcs.length === 0) return { buscaId: busca.id, processos: [] }
-
-            const processIds = userProcs.map(up => up.process_id)
-
+            // Buscar processos pela pesquisa específica usando o valor da busca
             const { data: procs } = await supabase
               .from('processes')
               .select('*')
-              .in('id', processIds)
               .contains('parties_cpf_cnpj', [busca.valor.replace(/\D/g, '')])
+              .order('created_at', { ascending: false })
 
             const processos: Process[] = (procs || []).map(p => ({
               ...p,
@@ -513,6 +505,14 @@ const Consultas = () => {
     }
   }
 
+  const handleOcultarBusca = (buscaId: string) => {
+    setBuscasOcultas(prev => new Set([...prev, buscaId]))
+    toast({
+      title: "Busca ocultada",
+      description: "A busca foi removida do seu histórico visual",
+    })
+  }
+
   return (
     <div className="space-y-6">
       <div>
@@ -576,8 +576,9 @@ const Consultas = () => {
 
       {buscas.length > 0 && (
         <HistoricoBuscas
-          buscas={buscas}
+          buscas={buscas.filter(b => !buscasOcultas.has(b.id))}
           getProcessosByBusca={(buscaId) => processosCache[buscaId] || []}
+          onOcultarBusca={handleOcultarBusca}
         />
       )}
     </div>
