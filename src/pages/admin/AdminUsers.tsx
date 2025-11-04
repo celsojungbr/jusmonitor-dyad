@@ -34,8 +34,9 @@ const AdminUsers = () => {
     }
   }
 
-  const filteredUsers = users.filter(user => 
+  const filteredUsers = users.filter(user =>
     user.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    user.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     user.cpf_cnpj?.includes(searchTerm)
   )
 
@@ -44,6 +45,11 @@ const AdminUsers = () => {
       key: "full_name",
       label: "Nome",
       render: (user: any) => user.full_name || "-"
+    },
+    {
+      key: "email",
+      label: "Email",
+      render: (user: any) => user.email || "-"
     },
     {
       key: "user_type",
@@ -115,7 +121,7 @@ const AdminUsers = () => {
         <div className="relative flex-1 max-w-md">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Buscar por nome ou CPF/CNPJ..."
+            placeholder="Buscar por nome, email ou CPF/CNPJ..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="pl-9"
