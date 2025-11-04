@@ -111,11 +111,11 @@ const AdminLayout = () => {
               </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-56 z-50 bg-background">
-              <DropdownMenuItem>
+              <DropdownMenuItem onClick={() => navigate('/dashboard/perfil')}>
                 <User className="w-4 h-4 mr-2" />
                 Perfil
               </DropdownMenuItem>
-              <DropdownMenuItem>
+              <DropdownMenuItem onClick={() => navigate('/dashboard/configuracoes')}>
                 <Settings className="w-4 h-4 mr-2" />
                 Configurações
               </DropdownMenuItem>
