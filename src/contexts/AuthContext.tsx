@@ -53,23 +53,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     // Listener para mudanças de autenticação
     const { data: { subscription } } = AuthService.onAuthStateChange(
-      async (event, session) => {
+      (event, session) => {
+        // CRÍTICO: Apenas operações síncronas aqui
         setSession(session)
         setUser(session?.user ?? null)
+        setLoading(false)
 
+        // Usar setTimeout para adiar chamadas ao Supabase
         if (session?.user) {
-          const { data } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', session.user.id)
-            .single()
+          setTimeout(async () => {
+            const { data } = await supabase
+              .from('profiles')
+              .select('*')
+              .eq('id', session.user.id)
+              .single()
 
-          setProfile(data)
+            setProfile(data)
+          }, 0)
         } else {
           setProfile(null)
         }
-
-        setLoading(false)
       }
     )
 
