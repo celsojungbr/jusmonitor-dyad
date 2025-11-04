@@ -24,17 +24,85 @@ import {
 
 // Lista de edge functions disponíveis para teste
 const EDGE_FUNCTIONS = [
-  { value: "search-document-orchestrator", label: "Busca por CPF/CNPJ (Orchestrator)", params: ["cpf", "cnpj"] },
-  { value: "search-processes-simple", label: "Busca Processual Simples", params: ["cpf", "cnpj", "oab"] },
-  { value: "search-processes-async", label: "Busca Processual Assíncrona", params: ["cpf", "cnpj", "oab"] },
-  { value: "judit-search-document", label: "JUDiT - Busca por Documento", params: ["cpf", "cnpj"] },
-  { value: "escavador_consulta_CPF_CNPJ", label: "Escavador - Consulta CPF/CNPJ", params: ["cpf", "cnpj"] },
-  { value: "search-criminal-records", label: "Busca de Antecedentes Criminais", params: ["cpf", "cnj"] },
-  { value: "search-registration-data", label: "Busca de Dados Cadastrais", params: ["cpf", "cnpj"] },
-  { value: "check-judit-request-status", label: "Verificar Status JUDiT", params: ["requestId"] },
-  { value: "check-api-balance", label: "Verificar Saldo de APIs", params: [] },
-  { value: "get-process-details", label: "Detalhes de Processo", params: ["cnj"] },
+  { value: "search-document-orchestrator", label: "Busca por CPF/CNPJ (Orchestrator)", params: ["cpf", "cnpj"], creditCost: 10 },
+  { value: "search-processes-simple", label: "Busca Processual Simples", params: ["cpf", "cnpj", "oab"], creditCost: 5 },
+  { value: "search-processes-async", label: "Busca Processual Assíncrona", params: ["cpf", "cnpj", "oab"], creditCost: 10 },
+  { value: "judit-search-document", label: "JUDiT - Busca por Documento", params: ["cpf", "cnpj"], creditCost: 8 },
+  { value: "escavador_consulta_CPF_CNPJ", label: "Escavador - Consulta CPF/CNPJ", params: ["cpf", "cnpj"], creditCost: 8 },
+  { value: "search-criminal-records", label: "Busca de Antecedentes Criminais", params: ["cpf", "cnj"], creditCost: 5 },
+  { value: "search-registration-data", label: "Busca de Dados Cadastrais", params: ["cpf", "cnpj"], creditCost: 3 },
+  { value: "check-judit-request-status", label: "Verificar Status JUDiT", params: ["requestId"], creditCost: 0 },
+  { value: "check-api-balance", label: "Verificar Saldo de APIs", params: [], creditCost: 0 },
+  { value: "get-process-details", label: "Detalhes de Processo", params: ["cnj"], creditCost: 2 },
 ]
+
+// Validação de parâmetros
+const validateParameter = (paramType: string, value: string): boolean => {
+  if (!value.trim()) return false
+  
+  switch(paramType) {
+    case 'cpf':
+      return /^\d{11}$/.test(value.replace(/\D/g, ''))
+    case 'cnpj':
+      return /^\d{14}$/.test(value.replace(/\D/g, ''))
+    case 'cnj':
+      return /^\d{20}$/.test(value.replace(/\D/g, ''))
+    case 'requestId':
+      return /^[a-f0-9-]{36}$/i.test(value)
+    case 'oab':
+      return value.length >= 3
+    default:
+      return true
+  }
+}
+
+// Construir payload específico para cada função
+const buildPayload = (functionName: string, paramType: string, paramValue: string, userId: string) => {
+  const payloadMap: Record<string, any> = {
+    'search-document-orchestrator': {
+      document: paramValue,
+      documentType: paramType,
+      userId
+    },
+    'search-registration-data': {
+      documentType: paramType,
+      document: paramValue,
+      userId
+    },
+    'search-criminal-records': 
+      paramType === 'cpf' 
+        ? { cpf: paramValue, userId }
+        : { cnj: paramValue, userId },
+    'search-processes-simple': {
+      searchType: paramType,
+      searchValue: paramValue,
+      userId
+    },
+    'search-processes-async': {
+      searchType: paramType,
+      searchValue: paramValue,
+      userId
+    },
+    'judit-search-document': {
+      document: paramValue,
+      documentType: paramType,
+      userId
+    },
+    'escavador_consulta_CPF_CNPJ': {
+      [paramType]: paramValue,
+      userId
+    },
+    'get-process-details': {
+      cnjNumber: paramValue
+    },
+    'check-judit-request-status': {
+      requestId: paramValue
+    },
+    'check-api-balance': {}
+  }
+
+  return payloadMap[functionName] || {}
+}
 
 interface TestResult {
   id: string
@@ -96,6 +164,30 @@ const AdminSandbox = () => {
       return
     }
 
+    // Obter userId autenticado
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) {
+      toast({
+        title: "Erro de autenticação",
+        description: "Você precisa estar autenticado para executar testes",
+        variant: "destructive"
+      })
+      return
+    }
+    const userId = user.id
+
+    // Validar parâmetro se necessário
+    if (selectedFunctionData?.params.length && selectedFunctionData.params.length > 0) {
+      if (!validateParameter(parameterType, parameter)) {
+        toast({
+          title: "Parâmetro inválido",
+          description: `O ${parameterType.toUpperCase()} fornecido não é válido`,
+          variant: "destructive"
+        })
+        return
+      }
+    }
+
     const startTime = Date.now()
     const testId = `test-${Date.now()}`
 
@@ -118,31 +210,14 @@ const AdminSandbox = () => {
       addLog(`Iniciando teste da função: ${selectedFunction}`)
       addLog(`Parâmetro: ${parameter || 'Nenhum'}`)
       addLog(`Tipo: ${parameterType}`)
-      addLog('Enviando requisição...')
+      addLog(`User ID: ${userId}`)
+      addLog('Construindo payload...')
 
-      // Construir o payload baseado na função selecionada
-      let payload: any = {}
-
-      if (selectedFunction === 'check-api-balance') {
-        // Não precisa de parâmetros
-        payload = {}
-      } else if (selectedFunction === 'check-judit-request-status') {
-        payload = { requestId: parameter }
-      } else if (selectedFunction === 'search-document-orchestrator') {
-        payload = {
-          document: parameter,
-          documentType: parameterType
-        }
-      } else if (selectedFunction === 'get-process-details') {
-        payload = { cnjNumber: parameter }
-      } else {
-        // Padrão para outras funções
-        payload = {
-          [parameterType]: parameter
-        }
-      }
+      // Construir payload usando a função helper
+      const payload = buildPayload(selectedFunction, parameterType, parameter, userId)
 
       addLog(`Payload: ${JSON.stringify(payload)}`)
+      addLog('Enviando requisição...')
 
       const response = await supabase.functions.invoke(selectedFunction, {
         body: payload
@@ -153,6 +228,24 @@ const AdminSandbox = () => {
       if (response.error) {
         addLog(`❌ Erro na requisição: ${response.error.message}`)
 
+        // Categorizar erro
+        let errorCategory = 'API Error'
+        const errorMsg = response.error.message?.toLowerCase() || ''
+        
+        if (errorMsg.includes('crédito') || errorMsg.includes('saldo')) {
+          errorCategory = 'Créditos Insuficientes'
+        } else if (errorMsg.includes('autenticação') || errorMsg.includes('unauthorized')) {
+          errorCategory = 'Erro de Autenticação'
+        } else if (errorMsg.includes('configuração') || errorMsg.includes('config')) {
+          errorCategory = 'Configuração de API'
+        } else if (errorMsg.includes('timeout') || errorMsg.includes('tempo')) {
+          errorCategory = 'Timeout'
+        } else if (errorMsg.includes('not found') || errorMsg.includes('404')) {
+          errorCategory = 'Recurso Não Encontrado'
+        }
+        
+        addLog(`📁 Categoria: ${errorCategory}`)
+
         const errorResult: TestResult = {
           ...initialResult,
           status: "error",
@@ -162,11 +255,11 @@ const AdminSandbox = () => {
         }
 
         setCurrentResult(errorResult)
-        setTestHistory(prev => [errorResult, ...prev].slice(0, 50)) // Manter últimos 50 testes
+        setTestHistory(prev => [errorResult, ...prev].slice(0, 50))
 
         toast({
           title: "Erro no teste",
-          description: response.error.message,
+          description: `${errorCategory}: ${response.error.message}`,
           variant: "destructive"
         })
       } else {
@@ -271,11 +364,23 @@ const AdminSandbox = () => {
                 <SelectContent>
                   {EDGE_FUNCTIONS.map((func) => (
                     <SelectItem key={func.value} value={func.value}>
-                      {func.label}
+                      <div className="flex items-center justify-between w-full">
+                        <span>{func.label}</span>
+                        {func.creditCost > 0 && (
+                          <Badge variant="outline" className="ml-2 text-xs">
+                            💳 {func.creditCost}
+                          </Badge>
+                        )}
+                      </div>
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
+              {selectedFunctionData && selectedFunctionData.creditCost > 0 && (
+                <p className="text-xs text-muted-foreground">
+                  💳 Custo: {selectedFunctionData.creditCost} créditos
+                </p>
+              )}
             </div>
 
             {/* Tipo de Parâmetro */}
