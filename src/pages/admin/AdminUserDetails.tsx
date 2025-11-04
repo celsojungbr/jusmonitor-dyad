@@ -40,11 +40,10 @@ interface UserDetails {
   id: string
   full_name: string | null
   cpf_cnpj: string | null
-  email: string | null
   phone: string | null
   oab_number: string | null
-  oab_state: string | null
-  user_type: string
+  user_type: 'user' | 'lawyer' | 'admin'
+  avatar_url: string | null
   created_at: string
   updated_at: string
 }
@@ -220,23 +219,20 @@ const AdminUserDetails = () => {
 
   const handleDeleteUser = async () => {
     try {
-      // Soft delete - apenas marca como inativo
-      const { error } = await supabase
-        .from('profiles')
-        .update({ user_type: 'inactive' })
-        .eq('id', userId)
-
+      // Remover permanentemente o usuário
+      const { error } = await supabase.auth.admin.deleteUser(userId!)
+      
       if (error) throw error
 
       toast({
-        title: "Usuário desativado",
-        description: "O usuário foi desativado com sucesso"
+        title: "Usuário removido",
+        description: "O usuário foi removido com sucesso"
       })
 
       navigate('/dashboard/admin/users')
     } catch (error) {
       toast({
-        title: "Erro ao desativar usuário",
+        title: "Erro ao remover usuário",
         description: error instanceof Error ? error.message : "Erro desconhecido",
         variant: "destructive"
       })
@@ -278,7 +274,7 @@ const AdminUserDetails = () => {
           <div>
             <h1 className="text-3xl font-bold">Detalhes do Usuário</h1>
             <p className="text-muted-foreground mt-1">
-              {user.full_name || user.email}
+              {user.full_name || user.id}
             </p>
           </div>
         </div>
@@ -323,17 +319,6 @@ const AdminUserDetails = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="email">Email</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    value={editedUser.email || ""}
-                    onChange={(e) => setEditedUser({ ...editedUser, email: e.target.value })}
-                    disabled
-                  />
-                </div>
-
-                <div className="space-y-2">
                   <Label htmlFor="cpf_cnpj">CPF/CNPJ</Label>
                   <Input
                     id="cpf_cnpj"
@@ -361,19 +346,10 @@ const AdminUserDetails = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="oab_state">Estado OAB</Label>
-                  <Input
-                    id="oab_state"
-                    value={editedUser.oab_state || ""}
-                    onChange={(e) => setEditedUser({ ...editedUser, oab_state: e.target.value })}
-                  />
-                </div>
-
-                <div className="space-y-2">
                   <Label htmlFor="user_type">Tipo de Usuário</Label>
                   <Select
                     value={editedUser.user_type}
-                    onValueChange={(value) => setEditedUser({ ...editedUser, user_type: value })}
+                    onValueChange={(value: 'user' | 'lawyer' | 'admin') => setEditedUser({ ...editedUser, user_type: value })}
                   >
                     <SelectTrigger>
                       <SelectValue />

@@ -556,6 +556,36 @@ export type Database = {
           },
         ]
       }
+      pricing_config: {
+        Row: {
+          created_at: string | null
+          credits_cost: number
+          description: string | null
+          id: string
+          is_active: boolean | null
+          operation_name: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          credits_cost: number
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          operation_name: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          credits_cost?: number
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          operation_name?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       process_attachments: {
         Row: {
           attachment_name: string
@@ -740,6 +770,63 @@ export type Database = {
         }
         Relationships: []
       }
+      promotions: {
+        Row: {
+          applicable_to: string[] | null
+          bonus_credits: number | null
+          coupon_code: string | null
+          created_at: string | null
+          current_uses: number | null
+          description: string | null
+          discount_fixed: number | null
+          discount_percentage: number | null
+          end_date: string
+          id: string
+          is_active: boolean | null
+          max_uses: number | null
+          promotion_name: string
+          promotion_type: string
+          start_date: string
+          updated_at: string | null
+        }
+        Insert: {
+          applicable_to?: string[] | null
+          bonus_credits?: number | null
+          coupon_code?: string | null
+          created_at?: string | null
+          current_uses?: number | null
+          description?: string | null
+          discount_fixed?: number | null
+          discount_percentage?: number | null
+          end_date: string
+          id?: string
+          is_active?: boolean | null
+          max_uses?: number | null
+          promotion_name: string
+          promotion_type: string
+          start_date: string
+          updated_at?: string | null
+        }
+        Update: {
+          applicable_to?: string[] | null
+          bonus_credits?: number | null
+          coupon_code?: string | null
+          created_at?: string | null
+          current_uses?: number | null
+          description?: string | null
+          discount_fixed?: number | null
+          discount_percentage?: number | null
+          end_date?: string
+          id?: string
+          is_active?: boolean | null
+          max_uses?: number | null
+          promotion_name?: string
+          promotion_type?: string
+          start_date?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       registration_data: {
         Row: {
           additional_data: Json | null
@@ -776,6 +863,54 @@ export type Database = {
           id?: string
           last_update?: string
           registration_status?: string | null
+        }
+        Relationships: []
+      }
+      subscription_plans: {
+        Row: {
+          can_recharge: boolean | null
+          created_at: string | null
+          credit_price: number
+          description: string | null
+          display_order: number | null
+          features: Json | null
+          id: string
+          included_credits: number | null
+          is_active: boolean | null
+          monthly_price: number | null
+          plan_name: string
+          plan_type: string
+          updated_at: string | null
+        }
+        Insert: {
+          can_recharge?: boolean | null
+          created_at?: string | null
+          credit_price: number
+          description?: string | null
+          display_order?: number | null
+          features?: Json | null
+          id?: string
+          included_credits?: number | null
+          is_active?: boolean | null
+          monthly_price?: number | null
+          plan_name: string
+          plan_type: string
+          updated_at?: string | null
+        }
+        Update: {
+          can_recharge?: boolean | null
+          created_at?: string | null
+          credit_price?: number
+          description?: string | null
+          display_order?: number | null
+          features?: Json | null
+          id?: string
+          included_credits?: number | null
+          is_active?: boolean | null
+          monthly_price?: number | null
+          plan_name?: string
+          plan_type?: string
+          updated_at?: string | null
         }
         Relationships: []
       }
