@@ -15,6 +15,8 @@ import { ProcessoDetalhes } from "@/features/processos/components/ProcessoDetalh
 import Monitoramentos from "./pages/dashboard/Monitoramentos";
 import Senhas from "./pages/dashboard/Senhas";
 import Planos from "./pages/dashboard/Planos";
+import ProfilePage from "./pages/dashboard/ProfilePage";
+import SettingsPage from "./pages/dashboard/SettingsPage";
 import AdminLayout from "./pages/admin/AdminLayout";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminUsers from "./pages/admin/AdminUsers";
@@ -49,6 +51,8 @@ const App = () => (
             <Route path="monitoramentos" element={<Monitoramentos />} />
             <Route path="senhas" element={<Senhas />} />
             <Route path="planos" element={<Planos />} />
+            <Route path="perfil" element={<ProfilePage />} />
+            <Route path="configuracoes" element={<SettingsPage />} />
           </Route>
           <Route path="/dashboard/admin" element={
             <ProtectedRoute>
