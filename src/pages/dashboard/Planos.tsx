@@ -1,9 +1,34 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Check, Zap } from "lucide-react";
+import { Check, Zap, Loader2 } from "lucide-react";
+import { useSubscriptionPlans, usePricingConfigs, useActivePromotions } from "@/hooks/usePricing";
 
 const Planos = () => {
+  const { data: plans, isLoading: plansLoading } = useSubscriptionPlans();
+  const { data: pricingConfigs, isLoading: pricingLoading } = usePricingConfigs();
+  const { data: promotions } = useActivePromotions();
+
+  // Ordena os planos pela display_order
+  const sortedPlans = plans?.sort((a, b) => a.display_order - b.display_order) || [];
+
+  // Calcula a economia baseada no plano Pré-Pago
+  const prepaidPlan = sortedPlans.find(p => p.plan_type === 'prepaid');
+
+  const calculateSavings = (plan: typeof sortedPlans[0]) => {
+    if (!prepaidPlan || !plan.credit_price || !prepaidPlan.credit_price) return null;
+    const savings = ((prepaidPlan.credit_price - plan.credit_price) / prepaidPlan.credit_price) * 100;
+    return Math.round(savings);
+  };
+
+  if (plansLoading || pricingLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <div>
@@ -31,117 +56,77 @@ const Planos = () => {
         </CardContent>
       </Card>
 
+      {promotions && promotions.length > 0 && (
+        <div className="text-center p-4 bg-green-50 dark:bg-green-950 rounded-lg">
+          {promotions.map((promo) => (
+            <div key={promo.id}>
+              <Badge variant="outline" className="text-green-600 border-green-600 mb-2">
+                {promo.promotion_name}
+              </Badge>
+              <p className="text-sm text-muted-foreground">
+                {promo.description}
+              </p>
+            </div>
+          ))}
+        </div>
+      )}
+
       <div>
         <h2 className="text-2xl font-bold mb-4">Escolha seu Plano</h2>
-        
-        <div className="grid md:grid-cols-3 gap-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Pré-Pago</CardTitle>
-              <CardDescription>Pague apenas pelo que usar</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <div className="text-3xl font-bold">R$ 1,50</div>
-                <div className="text-sm text-muted-foreground">por crédito</div>
-              </div>
-              
-              <ul className="space-y-2 text-sm">
-                <li className="flex items-center gap-2">
-                  <Check className="w-4 h-4 text-primary" />
-                  Sem compromisso mensal
-                </li>
-                <li className="flex items-center gap-2">
-                  <Check className="w-4 h-4 text-primary" />
-                  Válido por 12 meses
-                </li>
-                <li className="flex items-center gap-2">
-                  <Check className="w-4 h-4 text-primary" />
-                  Suporte por email
-                </li>
-              </ul>
-              
-              <Button variant="outline" className="w-full">
-                Adicionar Créditos
-              </Button>
-            </CardContent>
-          </Card>
 
-          <Card className="border-primary">
-            <CardHeader>
-              <div className="flex justify-between items-start">
-                <div>
-                  <CardTitle>Plus</CardTitle>
-                  <CardDescription>Para uso moderado</CardDescription>
-                </div>
-                <Badge>Economia 33%</Badge>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <div className="text-3xl font-bold">R$ 1,00</div>
-                <div className="text-sm text-muted-foreground">por crédito</div>
-                <div className="text-lg font-semibold">R$ 49/mês</div>
-              </div>
-              
-              <ul className="space-y-2 text-sm">
-                <li className="flex items-center gap-2">
-                  <Check className="w-4 h-4 text-primary" />
-                  Renovação automática
-                </li>
-                <li className="flex items-center gap-2">
-                  <Check className="w-4 h-4 text-primary" />
-                  Cancele quando quiser
-                </li>
-                <li className="flex items-center gap-2">
-                  <Check className="w-4 h-4 text-primary" />
-                  Suporte prioritário
-                </li>
-              </ul>
-              
-              <Button className="w-full">
-                Contratar Plus
-              </Button>
-            </CardContent>
-          </Card>
+        <div className={`grid gap-6 ${sortedPlans.length === 3 ? 'md:grid-cols-3' : 'md:grid-cols-2 lg:grid-cols-3'}`}>
+          {sortedPlans.map((plan, index) => {
+            const savings = calculateSavings(plan);
+            const isMiddlePlan = index === Math.floor(sortedPlans.length / 2);
 
-          <Card>
-            <CardHeader>
-              <div className="flex justify-between items-start">
-                <div>
-                  <CardTitle>Pro</CardTitle>
-                  <CardDescription>Para uso intensivo</CardDescription>
-                </div>
-                <Badge>Economia 53%</Badge>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <div className="text-3xl font-bold">R$ 0,70</div>
-                <div className="text-sm text-muted-foreground">por crédito</div>
-                <div className="text-lg font-semibold">R$ 990/mês</div>
-              </div>
-              
-              <ul className="space-y-2 text-sm">
-                <li className="flex items-center gap-2">
-                  <Check className="w-4 h-4 text-primary" />
-                  Renovação automática
-                </li>
-                <li className="flex items-center gap-2">
-                  <Check className="w-4 h-4 text-primary" />
-                  Cancele quando quiser
-                </li>
-                <li className="flex items-center gap-2">
-                  <Check className="w-4 h-4 text-primary" />
-                  Suporte VIP 24/7
-                </li>
-              </ul>
-              
-              <Button className="w-full">
-                Contratar Pro
-              </Button>
-            </CardContent>
-          </Card>
+            return (
+              <Card key={plan.id} className={isMiddlePlan ? 'border-primary' : ''}>
+                <CardHeader>
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <CardTitle>{plan.plan_name}</CardTitle>
+                      <CardDescription>{plan.description || 'Plano flexível'}</CardDescription>
+                    </div>
+                    {savings && savings > 0 && (
+                      <Badge>Economia {savings}%</Badge>
+                    )}
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <div className="text-3xl font-bold">R$ {plan.credit_price.toFixed(2)}</div>
+                    <div className="text-sm text-muted-foreground">por crédito</div>
+                    {plan.monthly_price && (
+                      <>
+                        <div className="text-lg font-semibold">R$ {plan.monthly_price.toFixed(2)}/mês</div>
+                        {plan.included_credits > 0 && (
+                          <div className="text-sm text-muted-foreground">
+                            Inclui {plan.included_credits} créditos
+                          </div>
+                        )}
+                      </>
+                    )}
+                  </div>
+
+                  <ul className="space-y-2 text-sm">
+                    {plan.features && plan.features.map((feature, idx) => (
+                      <li key={idx} className="flex items-center gap-2">
+                        <Check className="w-4 h-4 text-primary" />
+                        {feature}
+                      </li>
+                    ))}
+                  </ul>
+
+                  <Button
+                    className="w-full"
+                    variant={!plan.monthly_price ? 'outline' : 'default'}
+                  >
+                    {plan.monthly_price ? `Contratar ${plan.plan_name}` : 'Adicionar Créditos'}
+                  </Button>
+                </CardContent>
+              </Card>
+            );
+          })}
         </div>
       </div>
 
@@ -152,20 +137,18 @@ const Planos = () => {
         </CardHeader>
         <CardContent>
           <div className="space-y-3">
-            {[
-              { operation: "Consulta por CPF/CNPJ", credits: 5 },
-              { operation: "Consulta por CNJ", credits: 3 },
-              { operation: "Consulta por OAB", credits: 4 },
-              { operation: "Monitoramento/mês (por processo)", credits: 10 },
-              { operation: "Download de Anexo", credits: 2 },
-              { operation: "Análise IA por Processo", credits: 15 },
-              { operation: "Acesso Autos Completos", credits: 25 },
-            ].map((item, idx) => (
-              <div key={idx} className="flex justify-between items-center py-2 border-b last:border-0">
-                <span className="text-sm">{item.operation}</span>
-                <Badge variant="secondary">{item.credits} créditos</Badge>
+            {pricingConfigs && pricingConfigs.length > 0 ? (
+              pricingConfigs.map((config) => (
+                <div key={config.id} className="flex justify-between items-center py-2 border-b last:border-0">
+                  <span className="text-sm">{config.description || config.operation_name}</span>
+                  <Badge variant="secondary">{config.credits_cost} créditos</Badge>
+                </div>
+              ))
+            ) : (
+              <div className="text-center text-muted-foreground py-4">
+                Nenhuma configuração de preços disponível
               </div>
-            ))}
+            )}
           </div>
         </CardContent>
       </Card>
