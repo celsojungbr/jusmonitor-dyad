@@ -27,7 +27,7 @@ const Consultas = () => {
   const [loadingStep, setLoadingStep] = useState<string>('')
   const [searchStartTime, setSearchStartTime] = useState<number>(0)
 
-  // Carregar histórico de buscas ao montar o componente
+  // Carregar histórico de buscas com delay para melhor UX inicial
   useEffect(() => {
     const loadSearchHistory = async () => {
       try {
@@ -76,7 +76,26 @@ const Consultas = () => {
 
         setBuscas(buscasCarregadas)
 
-        // Carregar processos relacionados para cada busca processual
+        // Lazy load processos após renderizar UI inicial
+        setTimeout(() => {
+          loadProcessosParaBuscas(buscasCarregadas)
+        }, 300)
+      } catch (error) {
+        console.error('Erro ao carregar histórico:', error)
+      }
+    }
+
+    // Delay de 400ms para não bloquear renderização inicial
+    const timer = setTimeout(() => {
+      loadSearchHistory()
+    }, 400)
+
+    return () => clearTimeout(timer)
+  }, [])
+
+  const loadProcessosParaBuscas = async (buscasCarregadas: Busca[]) => {
+    try {
+      // Carregar processos relacionados para cada busca processual
         const processosPromises = buscasCarregadas
           .filter(b => b.tipo === 'processual' && b.resultados > 0) // Apenas buscas com resultados
           .map(async (busca) => {
@@ -130,13 +149,10 @@ const Consultas = () => {
         setProcessosCache(newCache)
 
         console.log(`Histórico carregado: ${buscasCarregadas.length} buscas`)
-      } catch (error) {
-        console.error('Erro ao carregar histórico:', error)
-      }
+    } catch (error) {
+      console.error('Erro ao carregar processos:', error)
     }
-
-    loadSearchHistory()
-  }, []) // Executar apenas uma vez ao montar
+  }
 
   // Polling para buscas assíncronas
   useEffect(() => {

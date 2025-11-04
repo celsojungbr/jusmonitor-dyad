@@ -1,11 +1,13 @@
 import { SidebarProvider, Sidebar, SidebarContent, SidebarHeader, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarTrigger } from "@/components/ui/sidebar";
 import { Search, Bell, Key, CreditCard, User, Settings, LogOut, Shield } from "lucide-react";
 import { Outlet, Link, useLocation, useNavigate } from "react-router-dom";
+import { Suspense } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/shared/hooks/useAuth";
 import { useAdmin } from "@/shared/hooks/useAdmin";
 import { useToast } from "@/hooks/use-toast";
+import { LoadingSkeleton } from "@/components/LoadingSkeleton";
 import logoTypo from "@/assets/logotype-black.png";
 import logoHorizontal from "@/assets/logo-horizontal-black.png";
 import avatarIcon from "@/assets/avatar-icon.png";
@@ -132,7 +134,9 @@ const DashboardLayout = () => {
 
           <main className="flex-1 p-6 bg-secondary/20">
             <div className="max-w-7xl mx-auto">
-              <Outlet />
+              <Suspense fallback={<LoadingSkeleton />}>
+                <Outlet />
+              </Suspense>
             </div>
           </main>
         </div>

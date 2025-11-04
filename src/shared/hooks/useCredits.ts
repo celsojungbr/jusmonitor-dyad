@@ -1,24 +1,35 @@
-import { useState, useEffect } from 'react'
+import { useEffect } from 'react'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/integrations/supabase/client'
 import { CreditsPlan } from '../types'
 import { useAuth } from './useAuth'
 
 export function useCredits() {
   const { user } = useAuth()
-  const [plan, setPlan] = useState<CreditsPlan | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const queryClient = useQueryClient()
+
+  const { data: plan, isLoading: loading, error } = useQuery({
+    queryKey: ['credits_plan', user?.id],
+    queryFn: async () => {
+      if (!user) return null
+
+      const { data, error: fetchError } = await supabase
+        .from('credits_plans')
+        .select('*')
+        .eq('user_id', user.id)
+        .single()
+
+      if (fetchError) throw fetchError
+      return data as CreditsPlan
+    },
+    enabled: !!user,
+    staleTime: 5 * 60 * 1000, // 5 minutos
+  })
 
   useEffect(() => {
-    if (!user) {
-      setPlan(null)
-      setLoading(false)
-      return
-    }
+    if (!user) return
 
-    fetchPlan()
-
-    // Subscribre para mudanças em tempo real
+    // Subscribe para mudanças em tempo real
     const channel = supabase
       .channel('credits_plan_changes')
       .on(
@@ -31,7 +42,7 @@ export function useCredits() {
         },
         (payload) => {
           if (payload.new) {
-            setPlan(payload.new as CreditsPlan)
+            queryClient.setQueryData(['credits_plan', user.id], payload.new)
           }
         }
       )
@@ -40,31 +51,7 @@ export function useCredits() {
     return () => {
       supabase.removeChannel(channel)
     }
-  }, [user])
-
-  const fetchPlan = async () => {
-    if (!user) return
-
-    try {
-      setLoading(true)
-      setError(null)
-
-      const { data, error: fetchError } = await supabase
-        .from('credits_plans')
-        .select('*')
-        .eq('user_id', user.id)
-        .single()
-
-      if (fetchError) throw fetchError
-
-      setPlan(data)
-    } catch (err: any) {
-      setError(err.message)
-      setPlan(null)
-    } finally {
-      setLoading(false)
-    }
-  }
+  }, [user, queryClient])
 
   const hasCredits = (amount: number): boolean => {
     if (!plan) return false
@@ -76,14 +63,18 @@ export function useCredits() {
     return plan.credit_cost
   }
 
+  const refetch = () => {
+    queryClient.invalidateQueries({ queryKey: ['credits_plan', user?.id] })
+  }
+
   return {
     plan,
     loading,
-    error,
+    error: error?.message ?? null,
     balance: plan?.credits_balance ?? 0,
     creditCost: getCreditCost(),
     planType: plan?.plan_type ?? 'prepaid',
     hasCredits,
-    refetch: fetchPlan
+    refetch
   }
 }
