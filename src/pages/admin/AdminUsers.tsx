@@ -1,13 +1,15 @@
 import { useEffect, useState } from "react"
+import { useNavigate } from "react-router-dom"
 import { AdminTable } from "@/components/admin/AdminTable"
 import { AdminApiService } from "@/features/admin"
 import { useToast } from "@/hooks/use-toast"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
-import { Search, Plus } from "lucide-react"
+import { Search, Plus, Eye } from "lucide-react"
 
 const AdminUsers = () => {
+  const navigate = useNavigate()
   const [users, setUsers] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
@@ -66,6 +68,23 @@ const AdminUsers = () => {
       key: "created_at",
       label: "Data de Cadastro",
       render: (user: any) => new Date(user.created_at).toLocaleDateString('pt-BR')
+    },
+    {
+      key: "actions",
+      label: "Ações",
+      render: (user: any) => (
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={(e) => {
+            e.stopPropagation()
+            navigate(`/dashboard/admin/users/${user.id}`)
+          }}
+        >
+          <Eye className="h-4 w-4 mr-2" />
+          Detalhes
+        </Button>
+      )
     }
   ]
 

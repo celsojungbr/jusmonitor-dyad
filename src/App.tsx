@@ -18,6 +18,7 @@ import Planos from "./pages/dashboard/Planos";
 import AdminLayout from "./pages/admin/AdminLayout";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminUsers from "./pages/admin/AdminUsers";
+import AdminUserDetails from "./pages/admin/AdminUserDetails";
 import AdminProcesses from "./pages/admin/AdminProcesses";
 import AdminTransactions from "./pages/admin/AdminTransactions";
 import AdminApis from "./pages/admin/AdminApis";
@@ -57,6 +58,7 @@ const App = () => (
           }>
             <Route index element={<AdminDashboard />} />
             <Route path="users" element={<AdminUsers />} />
+            <Route path="users/:userId" element={<AdminUserDetails />} />
             <Route path="processes" element={<AdminProcesses />} />
             <Route path="transactions" element={<AdminTransactions />} />
             <Route path="apis" element={<AdminApis />} />
