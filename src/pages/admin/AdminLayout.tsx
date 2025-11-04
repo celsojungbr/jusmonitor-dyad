@@ -9,7 +9,8 @@ import {
   LogOut,
   User,
   ArrowLeft,
-  Package
+  Package,
+  FlaskConical
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -26,6 +27,7 @@ const adminNav = [
   { name: "Planos", path: "/dashboard/admin/plans", icon: Package },
   { name: "APIs", path: "/dashboard/admin/apis", icon: Settings },
   { name: "Logs", path: "/dashboard/admin/logs", icon: FileBarChart },
+  { name: "Sandbox", path: "/dashboard/admin/sandbox", icon: FlaskConical },
 ]
 
 const AdminLayout = () => {

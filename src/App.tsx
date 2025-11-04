@@ -26,6 +26,7 @@ import AdminTransactions from "./pages/admin/AdminTransactions";
 import AdminApis from "./pages/admin/AdminApis";
 import AdminLogs from "./pages/admin/AdminLogs";
 import AdminPlans from "./pages/admin/AdminPlans";
+import AdminSandbox from "./pages/admin/AdminSandbox";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -69,6 +70,7 @@ const App = () => (
             <Route path="plans" element={<AdminPlans />} />
             <Route path="apis" element={<AdminApis />} />
             <Route path="logs" element={<AdminLogs />} />
+            <Route path="sandbox" element={<AdminSandbox />} />
           </Route>
           <Route path="*" element={<NotFound />} />
         </Routes>
