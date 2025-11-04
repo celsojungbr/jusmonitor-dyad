@@ -1,14 +1,15 @@
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom"
-import { 
-  LayoutDashboard, 
-  Users, 
-  FileText, 
-  CreditCard, 
-  Settings, 
+import {
+  LayoutDashboard,
+  Users,
+  FileText,
+  CreditCard,
+  Settings,
   FileBarChart,
   LogOut,
   User,
-  ArrowLeft
+  ArrowLeft,
+  Package
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -22,6 +23,7 @@ const adminNav = [
   { name: "Usuários", path: "/dashboard/admin/users", icon: Users },
   { name: "Processos", path: "/dashboard/admin/processes", icon: FileText },
   { name: "Transações", path: "/dashboard/admin/transactions", icon: CreditCard },
+  { name: "Planos", path: "/dashboard/admin/plans", icon: Package },
   { name: "APIs", path: "/dashboard/admin/apis", icon: Settings },
   { name: "Logs", path: "/dashboard/admin/logs", icon: FileBarChart },
 ]
