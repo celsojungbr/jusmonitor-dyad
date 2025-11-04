@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/shared/hooks/useAuth";
+import { useNotificationPreferences } from "@/shared/hooks/useNotificationPreferences";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -10,6 +11,7 @@ import { Loader2, Lock, Bell, Shield, Mail, Eye, EyeOff } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export default function SettingsPage() {
   const { user } = useAuth();
@@ -29,14 +31,8 @@ export default function SettingsPage() {
   // Email change state
   const [newEmail, setNewEmail] = useState("");
 
-  // Notification preferences
-  const [notifications, setNotifications] = useState({
-    emailNotifications: true,
-    processAlerts: true,
-    creditAlerts: true,
-    systemUpdates: false,
-    marketingEmails: false,
-  });
+  // Notification preferences com hook que conecta ao banco
+  const { preferences, isLoading: prefsLoading, updatePreference } = useNotificationPreferences();
 
   const handlePasswordChange = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -109,14 +105,19 @@ export default function SettingsPage() {
     }
   };
 
-  const handleNotificationChange = (key: keyof typeof notifications) => {
-    setNotifications({ ...notifications, [key]: !notifications[key] });
-
-    // Auto-save (you could debounce this in production)
-    toast({
-      title: "Preferência Salva",
-      description: "Suas preferências de notificação foram atualizadas.",
-    });
+  const handleNotificationChange = (key: string) => {
+    const fieldMap: Record<string, keyof typeof preferences> = {
+      'emailNotifications': 'email_notifications',
+      'processAlerts': 'process_alerts',
+      'creditAlerts': 'credit_alerts',
+      'systemUpdates': 'system_updates',
+      'marketingEmails': 'marketing_emails'
+    }
+    
+    const dbField = fieldMap[key]
+    if (dbField && preferences) {
+      updatePreference(dbField, !preferences[dbField])
+    }
   };
 
   return (
@@ -372,83 +373,93 @@ export default function SettingsPage() {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-              <div className="flex items-center justify-between">
-                <div className="space-y-1">
-                  <Label htmlFor="email-notifications">Notificações por E-mail</Label>
-                  <p className="text-sm text-muted-foreground">
-                    Receber notificações gerais por e-mail
-                  </p>
-                </div>
-                <Switch
-                  id="email-notifications"
-                  checked={notifications.emailNotifications}
-                  onCheckedChange={() => handleNotificationChange("emailNotifications")}
-                />
-              </div>
+              {prefsLoading ? (
+                <>
+                  <Skeleton className="h-16 w-full" />
+                  <Skeleton className="h-16 w-full" />
+                  <Skeleton className="h-16 w-full" />
+                </>
+              ) : (
+                <>
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-1">
+                      <Label htmlFor="email-notifications">Notificações por E-mail</Label>
+                      <p className="text-sm text-muted-foreground">
+                        Receber notificações gerais por e-mail
+                      </p>
+                    </div>
+                    <Switch
+                      id="email-notifications"
+                      checked={preferences?.email_notifications ?? true}
+                      onCheckedChange={() => handleNotificationChange("emailNotifications")}
+                    />
+                  </div>
 
-              <Separator />
+                  <Separator />
 
-              <div className="flex items-center justify-between">
-                <div className="space-y-1">
-                  <Label htmlFor="process-alerts">Alertas de Processos</Label>
-                  <p className="text-sm text-muted-foreground">
-                    Notificações sobre movimentações nos processos monitorados
-                  </p>
-                </div>
-                <Switch
-                  id="process-alerts"
-                  checked={notifications.processAlerts}
-                  onCheckedChange={() => handleNotificationChange("processAlerts")}
-                />
-              </div>
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-1">
+                      <Label htmlFor="process-alerts">Alertas de Processos</Label>
+                      <p className="text-sm text-muted-foreground">
+                        Notificações sobre movimentações nos processos monitorados
+                      </p>
+                    </div>
+                    <Switch
+                      id="process-alerts"
+                      checked={preferences?.process_alerts ?? true}
+                      onCheckedChange={() => handleNotificationChange("processAlerts")}
+                    />
+                  </div>
 
-              <Separator />
+                  <Separator />
 
-              <div className="flex items-center justify-between">
-                <div className="space-y-1">
-                  <Label htmlFor="credit-alerts">Alertas de Créditos</Label>
-                  <p className="text-sm text-muted-foreground">
-                    Notificações sobre saldo de créditos e vencimentos
-                  </p>
-                </div>
-                <Switch
-                  id="credit-alerts"
-                  checked={notifications.creditAlerts}
-                  onCheckedChange={() => handleNotificationChange("creditAlerts")}
-                />
-              </div>
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-1">
+                      <Label htmlFor="credit-alerts">Alertas de Créditos</Label>
+                      <p className="text-sm text-muted-foreground">
+                        Notificações sobre saldo de créditos e vencimentos
+                      </p>
+                    </div>
+                    <Switch
+                      id="credit-alerts"
+                      checked={preferences?.credit_alerts ?? true}
+                      onCheckedChange={() => handleNotificationChange("creditAlerts")}
+                    />
+                  </div>
 
-              <Separator />
+                  <Separator />
 
-              <div className="flex items-center justify-between">
-                <div className="space-y-1">
-                  <Label htmlFor="system-updates">Atualizações do Sistema</Label>
-                  <p className="text-sm text-muted-foreground">
-                    Novidades, recursos e melhorias da plataforma
-                  </p>
-                </div>
-                <Switch
-                  id="system-updates"
-                  checked={notifications.systemUpdates}
-                  onCheckedChange={() => handleNotificationChange("systemUpdates")}
-                />
-              </div>
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-1">
+                      <Label htmlFor="system-updates">Atualizações do Sistema</Label>
+                      <p className="text-sm text-muted-foreground">
+                        Novidades, recursos e melhorias da plataforma
+                      </p>
+                    </div>
+                    <Switch
+                      id="system-updates"
+                      checked={preferences?.system_updates ?? true}
+                      onCheckedChange={() => handleNotificationChange("systemUpdates")}
+                    />
+                  </div>
 
-              <Separator />
+                  <Separator />
 
-              <div className="flex items-center justify-between">
-                <div className="space-y-1">
-                  <Label htmlFor="marketing-emails">E-mails de Marketing</Label>
-                  <p className="text-sm text-muted-foreground">
-                    Ofertas especiais, promoções e conteúdo educativo
-                  </p>
-                </div>
-                <Switch
-                  id="marketing-emails"
-                  checked={notifications.marketingEmails}
-                  onCheckedChange={() => handleNotificationChange("marketingEmails")}
-                />
-              </div>
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-1">
+                      <Label htmlFor="marketing-emails">E-mails de Marketing</Label>
+                      <p className="text-sm text-muted-foreground">
+                        Ofertas especiais, promoções e conteúdo educativo
+                      </p>
+                    </div>
+                    <Switch
+                      id="marketing-emails"
+                      checked={preferences?.marketing_emails ?? false}
+                      onCheckedChange={() => handleNotificationChange("marketingEmails")}
+                    />
+                  </div>
+                </>
+              )}
             </CardContent>
           </Card>
 

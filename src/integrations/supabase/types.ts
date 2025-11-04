@@ -515,6 +515,42 @@ export type Database = {
           },
         ]
       }
+      notification_preferences: {
+        Row: {
+          created_at: string
+          credit_alerts: boolean
+          email_notifications: boolean
+          id: string
+          marketing_emails: boolean
+          process_alerts: boolean
+          system_updates: boolean
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          credit_alerts?: boolean
+          email_notifications?: boolean
+          id?: string
+          marketing_emails?: boolean
+          process_alerts?: boolean
+          system_updates?: boolean
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          credit_alerts?: boolean
+          email_notifications?: boolean
+          id?: string
+          marketing_emails?: boolean
+          process_alerts?: boolean
+          system_updates?: boolean
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       notifications: {
         Row: {
           content: string
