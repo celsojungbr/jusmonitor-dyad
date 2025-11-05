@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Upload, User } from "lucide-react";
+import { Loader2, Upload, UserRound } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
@@ -182,10 +182,10 @@ export default function ProfilePage() {
           </CardHeader>
           <CardContent>
             <div className="flex items-center gap-6">
-              <Avatar className="h-24 w-24">
+              <Avatar className="h-24 w-24 bg-muted">
                 <AvatarImage src={profile.avatar_url} alt={profile.full_name} />
-                <AvatarFallback className="text-2xl">
-                  {profile.full_name ? getInitials(profile.full_name) : <User />}
+                <AvatarFallback className="bg-muted">
+                  <UserRound className="h-8 w-8 text-muted-foreground" />
                 </AvatarFallback>
               </Avatar>
               <div className="flex-1">

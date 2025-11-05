@@ -10,14 +10,14 @@ import {
   User,
   ArrowLeft,
   Package,
-  FlaskConical
+  FlaskConical,
+  UserRound
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { useAuth } from "@/shared/hooks/useAuth"
 import { useToast } from "@/hooks/use-toast"
-import avatarIcon from "@/assets/avatar-icon.png"
 
 const adminNav = [
   { name: "Dashboard", path: "/dashboard/admin", icon: LayoutDashboard },
@@ -106,9 +106,11 @@ const AdminLayout = () => {
                   <div className="text-sm font-medium">{userName}</div>
                   <div className="text-xs text-muted-foreground">Administrador</div>
                 </div>
-                <Avatar>
-                  <AvatarImage src={profile?.avatar_url || avatarIcon} />
-                  <AvatarFallback>{userInitials}</AvatarFallback>
+                <Avatar className="bg-muted">
+                  <AvatarImage src={profile?.avatar_url || ""} />
+                  <AvatarFallback className="bg-muted">
+                    <UserRound className="w-4 h-4 text-muted-foreground" />
+                  </AvatarFallback>
                 </Avatar>
               </button>
             </DropdownMenuTrigger>

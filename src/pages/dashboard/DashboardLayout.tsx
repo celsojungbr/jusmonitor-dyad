@@ -1,5 +1,5 @@
 import { SidebarProvider, Sidebar, SidebarContent, SidebarHeader, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarTrigger, SidebarFooter } from "@/components/ui/sidebar";
-import { Search, Bell, Key, CreditCard, User, Settings, Shield } from "lucide-react";
+import { Search, Bell, Key, CreditCard, User, Settings, Shield, LogOut, UserRound } from "lucide-react";
 import { Outlet, Link, useLocation, useNavigate } from "react-router-dom";
 import { Suspense } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -7,9 +7,8 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSepara
 import { useAuth } from "@/shared/hooks/useAuth";
 import { useAdmin } from "@/shared/hooks/useAdmin";
 import { useCredits } from "@/shared/hooks/useCredits";
-import { LogoutButton } from "@/components/auth/LogoutButton";
+import { useToast } from "@/hooks/use-toast";
 import { LoadingSkeleton } from "@/components/LoadingSkeleton";
-import avatarIcon from "@/assets/avatar-icon.png";
 
 const navigation = [
   { name: "Consultas", href: "/dashboard/consultas", icon: Search },
@@ -21,9 +20,10 @@ const navigation = [
 const DashboardLayout = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { profile } = useAuth();
+  const { profile, signOut } = useAuth();
   const { isAdmin } = useAdmin();
   const { balance } = useCredits();
+  const { toast } = useToast();
 
   // Obter iniciais do nome
   const getInitials = (name: string) => {
@@ -38,6 +38,21 @@ const DashboardLayout = () => {
   const userName = profile?.full_name || "Usuário";
   const userType = profile?.user_type === "lawyer" ? "Advogado" : profile?.user_type === "admin" ? "Administrador" : "Usuário";
   const userInitials = getInitials(userName);
+
+  const handleSignOut = async () => {
+    try {
+      await signOut();
+      toast({ title: "Logout realizado", description: "Até logo!" });
+      navigate("/");
+    } catch (error) {
+      console.error("Erro ao fazer logout:", error);
+      toast({
+        title: "Erro",
+        description: "Não foi possível sair. Tente novamente.",
+        variant: "destructive",
+      });
+    }
+  };
 
   return (
     <SidebarProvider>
@@ -88,9 +103,11 @@ const DashboardLayout = () => {
                     <div className="text-sm font-medium">{userName}</div>
                     <div className="text-xs text-muted-foreground">{userType}</div>
                   </div>
-                  <Avatar>
-                    <AvatarImage src={profile?.avatar_url || avatarIcon} />
-                    <AvatarFallback>{userInitials}</AvatarFallback>
+                  <Avatar className="bg-muted">
+                    <AvatarImage src={profile?.avatar_url || ""} />
+                    <AvatarFallback className="bg-muted">
+                      <UserRound className="w-4 h-4 text-muted-foreground" />
+                    </AvatarFallback>
                   </Avatar>
                 </button>
               </DropdownMenuTrigger>
@@ -113,15 +130,9 @@ const DashboardLayout = () => {
                   </>
                 )}
                 <DropdownMenuSeparator />
-                <DropdownMenuItem asChild className="cursor-pointer">
-                  <div className="w-full">
-                    <LogoutButton
-                      variant="ghost"
-                      size="sm"
-                      className="w-full justify-start p-0 h-auto font-normal text-destructive hover:text-destructive hover:bg-transparent"
-                      showConfirmDialog={true}
-                    />
-                  </div>
+                <DropdownMenuItem className="text-destructive" onClick={handleSignOut}>
+                  <LogOut className="w-4 h-4 mr-2" />
+                  Sair
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
