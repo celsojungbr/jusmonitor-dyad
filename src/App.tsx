@@ -1,7 +1,6 @@
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { AdminRoute } from "@/components/AdminRoute";
@@ -32,57 +31,53 @@ import AdminPlans from "./pages/admin/AdminPlans";
 import AdminSandbox from "./pages/admin/AdminSandbox";
 import NotFound from "./pages/NotFound";
 
-const queryClient = new QueryClient();
-
 const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Landing />} />
-          <Route path="/auth" element={<Auth />} />
-          <Route path="/auth/callback" element={<OAuthCallback />} />
-          <Route path="/reset-password" element={<ResetPassword />} />
-          <Route path="/verify-email" element={<EmailVerification />} />
-          <Route path="/precos" element={<Precos />} />
-          <Route path="/sobre" element={<Sobre />} />
-          <Route path="/dashboard" element={
-            <ProtectedRoute>
-              <DashboardLayout />
-            </ProtectedRoute>
-          }>
-            <Route path="consultas" element={<Consultas />} />
-            <Route path="processo/:cnjNumber" element={<ProcessoDetalhes />} />
-            <Route path="monitoramentos" element={<Monitoramentos />} />
-            <Route path="senhas" element={<Senhas />} />
-            <Route path="planos" element={<Planos />} />
-            <Route path="perfil" element={<ProfilePage />} />
-            <Route path="configuracoes" element={<SettingsPage />} />
-          </Route>
-          <Route path="/dashboard/admin" element={
-            <ProtectedRoute>
-              <AdminRoute>
-                <AdminLayout />
-              </AdminRoute>
-            </ProtectedRoute>
-          }>
-            <Route index element={<AdminDashboard />} />
-            <Route path="users" element={<AdminUsers />} />
-            <Route path="users/:userId" element={<AdminUserDetails />} />
-            <Route path="processes" element={<AdminProcesses />} />
-            <Route path="transactions" element={<AdminTransactions />} />
-            <Route path="plans" element={<AdminPlans />} />
-            <Route path="apis" element={<AdminApis />} />
-            <Route path="logs" element={<AdminLogs />} />
-            <Route path="sandbox" element={<AdminSandbox />} />
-          </Route>
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </BrowserRouter>
-    </TooltipProvider>
-  </QueryClientProvider>
+  <TooltipProvider>
+    <Toaster />
+    <Sonner />
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<Landing />} />
+        <Route path="/auth" element={<Auth />} />
+        <Route path="/auth/callback" element={<OAuthCallback />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
+        <Route path="/verify-email" element={<EmailVerification />} />
+        <Route path="/precos" element={<Precos />} />
+        <Route path="/sobre" element={<Sobre />} />
+        <Route path="/dashboard" element={
+          <ProtectedRoute>
+            <DashboardLayout />
+          </ProtectedRoute>
+        }>
+          <Route path="consultas" element={<Consultas />} />
+          <Route path="processo/:cnjNumber" element={<ProcessoDetalhes />} />
+          <Route path="monitoramentos" element={<Monitoramentos />} />
+          <Route path="senhas" element={<Senhas />} />
+          <Route path="planos" element={<Planos />} />
+          <Route path="perfil" element={<ProfilePage />} />
+          <Route path="configuracoes" element={<SettingsPage />} />
+        </Route>
+        <Route path="/dashboard/admin" element={
+          <ProtectedRoute>
+            <AdminRoute>
+              <AdminLayout />
+            </AdminRoute>
+          </ProtectedRoute>
+        }>
+          <Route index element={<AdminDashboard />} />
+          <Route path="users" element={<AdminUsers />} />
+          <Route path="users/:userId" element={<AdminUserDetails />} />
+          <Route path="processes" element={<AdminProcesses />} />
+          <Route path="transactions" element={<AdminTransactions />} />
+          <Route path="plans" element={<AdminPlans />} />
+          <Route path="apis" element={<AdminApis />} />
+          <Route path="logs" element={<AdminLogs />} />
+          <Route path="sandbox" element={<AdminSandbox />} />
+        </Route>
+        <Route path="*" element={<NotFound />} />
+      </Routes>
+    </BrowserRouter>
+  </TooltipProvider>
 );
 
 export default App;
