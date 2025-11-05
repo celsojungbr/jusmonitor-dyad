@@ -61,7 +61,7 @@ const DashboardLayout = () => {
           <SidebarHeader>
             <div className="flex items-center gap-2 px-3 py-4 group-data-[collapsible=icon]:justify-center">
               <img src="https://res.cloudinary.com/dsdzoebyq/image/upload/v1762059245/JUSMONITOR_Logo_Horizontal_Black_ppc9km.png" alt="JusMonitor" className="h-8 group-data-[collapsible=icon]:hidden" />
-              <img src="https://res.cloudinary.com/dsdzoebyq/image/upload/v1762059245/JUSMONITOR_Logotype_Black_aqwfyp.png" alt="JusMonitor" className="h-6 hidden group-data-[collapsible=icon]:block" />
+              <img src="https://res.cloudinary.com/dsdzoebyq/image/upload/v1762059245/JUSMONITOR_Logotype_Black_aqwfyp.png" alt="JusMonitor" className="w-8 h-8 object-contain hidden group-data-[collapsible=icon]:block" />
             </div>
           </SidebarHeader>
           
