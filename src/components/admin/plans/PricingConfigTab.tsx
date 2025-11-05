@@ -71,9 +71,9 @@ export function PricingConfigTab() {
 
   const getOperationLabel = (name: string) => {
     const labels: Record<string, string> = {
-      consulta: 'Consulta',
-      atualizacao_processo: 'Atualização de Processo',
-      monitoramento_ativo: 'Monitoramento Ativo',
+      consulta: 'Consulta Processual',
+      atualizacao_processo: 'Atualização Processual',
+      monitoramento_ativo: 'Monitoramento',
     };
     return labels[name] || name;
   };

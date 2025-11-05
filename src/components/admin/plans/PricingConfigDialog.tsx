@@ -13,6 +13,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from '@/components/ui/select';
 import { useCreatePricingConfig, useUpdatePricingConfig } from '@/hooks/usePricing';
 import { PricingConfig, CreatePricingConfigDto } from '@/types/pricing.types';
 
@@ -40,6 +41,8 @@ export function PricingConfigDialog({
   } = useForm<CreatePricingConfigDto>({
     defaultValues: {
       is_active: true,
+      operation_name: 'consulta',
+      description: 'Consulta Processual',
     },
   });
 
@@ -54,6 +57,8 @@ export function PricingConfigDialog({
     } else {
       reset({
         is_active: true,
+        operation_name: 'consulta',
+        description: 'Consulta Processual',
       });
     }
   }, [config, reset]);
@@ -84,21 +89,45 @@ export function PricingConfigDialog({
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="operation_name">Nome da Operação*</Label>
-            <Input
-              id="operation_name"
+            <Label>Operação*</Label>
+            <Select
+              disabled={!!config}
+              value={watch('operation_name') || ''}
+              onValueChange={(val) => {
+                setValue('operation_name', val);
+                const selected = [
+                  { value: 'consulta', label: 'Consulta Processual' },
+                  { value: 'atualizacao_processo', label: 'Atualização Processual' },
+                  { value: 'monitoramento_ativo', label: 'Monitoramento' },
+                ].find((o) => o.value === val);
+                const currentDesc = watch('description');
+                if (selected && (!currentDesc || currentDesc.trim() === '')) {
+                  setValue('description', selected.label);
+                }
+              }}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Selecione a operação" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="consulta">Consulta Processual</SelectItem>
+                <SelectItem value="atualizacao_processo">Atualização Processual</SelectItem>
+                <SelectItem value="monitoramento_ativo">Monitoramento</SelectItem>
+              </SelectContent>
+            </Select>
+            {/* Input hidden para manter validação/react-hook-form */}
+            <input
+              type="hidden"
               {...register('operation_name', {
                 required: 'Nome da operação é obrigatório',
               })}
-              placeholder="Ex: consulta, atualizacao_processo"
-              disabled={!!config}
             />
             {errors.operation_name && (
               <p className="text-sm text-red-500">{errors.operation_name.message}</p>
             )}
             {!config && (
               <p className="text-xs text-muted-foreground">
-                Use snake_case (ex: monitoramento_ativo)
+                Operações disponíveis: Consulta Processual, Atualização Processual e Monitoramento.
               </p>
             )}
           </div>
