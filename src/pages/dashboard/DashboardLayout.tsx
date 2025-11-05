@@ -59,9 +59,9 @@ const DashboardLayout = () => {
       <div className="min-h-screen flex w-full">
         <Sidebar collapsible="icon">
           <SidebarHeader>
-            <div className="flex items-center gap-2 px-3 py-4 group-data-[collapsible=icon]:justify-center">
+            <div className="flex items-center gap-2 px-3 py-4 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-1 group-data-[collapsible=icon]:py-2">
               <img src="https://res.cloudinary.com/dsdzoebyq/image/upload/v1762059245/JUSMONITOR_Logo_Horizontal_Black_ppc9km.png" alt="JusMonitor" className="h-8 group-data-[collapsible=icon]:hidden" />
-              <img src="https://res.cloudinary.com/dsdzoebyq/image/upload/v1762059245/JUSMONITOR_Logotype_Black_aqwfyp.png" alt="JusMonitor" className="w-8 h-8 object-contain hidden group-data-[collapsible=icon]:block" />
+              <img src="https://res.cloudinary.com/dsdzoebyq/image/upload/v1762059245/JUSMONITOR_Logotype_Black_aqwfyp.png" alt="JusMonitor" className="w-10 h-10 object-contain hidden group-data-[collapsible=icon]:block" />
             </div>
           </SidebarHeader>
           
@@ -84,9 +84,10 @@ const DashboardLayout = () => {
           </SidebarContent>
           <SidebarFooter>
             <div className="px-3 pb-2">
-              <div className="rounded-lg bg-sidebar-accent/60 text-sidebar-accent-foreground p-2 flex items-center justify-between">
-                <span className="text-xs">Saldo</span>
-                <span className="text-sm font-medium">{balance} créditos</span>
+              <div className="rounded-lg bg-sidebar-accent/60 text-sidebar-accent-foreground p-2 flex items-center justify-between group-data-[collapsible=icon]:flex-col group-data-[collapsible=icon]:items-center group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:p-1 group-data-[collapsible=icon]:gap-0">
+                <span className="text-xs group-data-[collapsible=icon]:hidden">Saldo</span>
+                <span className="text-sm font-medium group-data-[collapsible=icon]:text-xs group-data-[collapsible=icon]:leading-none group-data-[collapsible=icon]:tabular-nums">{balance}</span>
+                <span className="text-xs group-data-[collapsible=icon]:hidden">créditos</span>
               </div>
             </div>
           </SidebarFooter>
