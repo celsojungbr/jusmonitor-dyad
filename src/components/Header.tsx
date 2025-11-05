@@ -40,7 +40,7 @@ const Header = () => {
                         <div className="mb-2 mt-4 text-lg font-medium">
                           Recursos
                         </div>
-                        <p className="text-sm leading-tight text-white">
+                        <p className="text-sm leading-tight text-muted-foreground">
                           Conheça todas as funcionalidades da plataforma
                         </p>
                       </Link>
@@ -129,13 +129,13 @@ const ListItem = ({
         <Link
           to={href}
           className={cn(
-            "block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-white focus:bg-accent focus:text-white",
+            "group block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent focus:bg-accent",
             className
           )}
           {...props}
         >
-          <div className="text-sm font-medium leading-none">{title}</div>
-          <p className="line-clamp-2 text-sm leading-snug text-white">
+          <div className="text-sm font-medium leading-none group-hover:text-white">{title}</div>
+          <p className="line-clamp-2 text-sm leading-snug text-muted-foreground group-hover:text-white">
             {children}
           </p>
         </Link>
