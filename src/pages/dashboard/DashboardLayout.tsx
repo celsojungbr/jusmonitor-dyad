@@ -9,6 +9,7 @@ import { useAdmin } from "@/shared/hooks/useAdmin";
 import { useCredits } from "@/shared/hooks/useCredits";
 import { useToast } from "@/hooks/use-toast";
 import { LoadingSkeleton } from "@/components/LoadingSkeleton";
+import ErrorBoundary from "@/components/ErrorBoundary";
 
 const navigation = [
   { name: "Consultas", href: "/dashboard/consultas", icon: Search },
@@ -141,9 +142,11 @@ const DashboardLayout = () => {
 
           <main className="flex-1 p-6 bg-secondary/20">
             <div className="max-w-7xl mx-auto">
-              <Suspense fallback={<LoadingSkeleton />}>
-                <Outlet />
-              </Suspense>
+              <ErrorBoundary>
+                <Suspense fallback={<LoadingSkeleton />}>
+                  <Outlet />
+                </Suspense>
+              </ErrorBoundary>
             </div>
           </main>
         </div>
