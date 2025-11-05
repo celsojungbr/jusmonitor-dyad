@@ -4,8 +4,6 @@ import {
   GetProcessDetailsResponse,
   DownloadAttachmentRequest,
   DownloadAttachmentResponse,
-  AiChatRequest,
-  AiChatResponse,
   CaptureAttachmentsRequest,
   CaptureAttachmentsResponse,
   GeneratePdfDossierRequest,
@@ -59,20 +57,6 @@ export class ProcessoService {
     )
   }
 
-  static async chatWithAI(processId: string, userMessage: string): Promise<AiChatResponse> {
-    const userId = await ApiClient.getCurrentUserId()
-
-    const request: AiChatRequest = {
-      processId,
-      userMessage,
-      userId
-    }
-
-    return ApiClient.callEdgeFunction<AiChatRequest, AiChatResponse>(
-      'ai-chat-process',
-      request
-    )
-  }
 
   static async removeProcessFromList(processId: string) {
     const userId = await ApiClient.getCurrentUserId()
