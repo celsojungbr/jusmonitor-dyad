@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/navigation-menu";
 import { Link } from "react-router-dom";
 import { cn } from "@/lib/utils";
+import { Download } from "lucide-react";
 
 const Header = () => {
   return (
@@ -85,6 +86,16 @@ const Header = () => {
                   </ListItem>
                 </ul>
               </NavigationMenuContent>
+            </NavigationMenuItem>
+
+            {/* Baixar o App */}
+            <NavigationMenuItem>
+              <NavigationMenuLink asChild>
+                <Link to="/pwa" className={cn(navigationMenuTriggerStyle(), "gap-2")}>
+                  <Download className="h-4 w-4" />
+                  Baixar o App
+                </Link>
+              </NavigationMenuLink>
             </NavigationMenuItem>
 
             <NavigationMenuItem>
