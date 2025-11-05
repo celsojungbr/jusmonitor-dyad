@@ -249,7 +249,7 @@ const Consultas = () => {
         console.log('Iniciando busca CPF/CNPJ (Escavador):', data.valor)
         setLoadingStep('Consultando Escavador...')
         
-        const result = await ConsultaService.searchEscavadorDocument(data.valor)
+        const result: any = await ConsultaService.searchEscavadorDocument(data.valor)
 
         if (!result) {
           throw new Error('Resposta vazia da API')
@@ -329,35 +329,6 @@ const Consultas = () => {
         setLoading(false)
         setLoadingStep('')
         return
-        
-        const buscaId = Date.now().toString()
-        const novaBusca: Busca = {
-          id: buscaId,
-          tipo: 'processual',
-          tipoIdentificador: data.tipoIdentificador,
-          valor: data.valor,
-          resultados: simpleResult.results_count,
-          data: new Date(),
-          fromCache: simpleResult.from_cache,
-          creditsConsumed: 0,
-          apiUsed: 'escavador'
-        }
-        
-        setBuscas([novaBusca, ...buscas])
-        setProcessosCache(prev => ({ ...prev, [buscaId]: simpleResult.processes || [] }))
-        
-        // Guardar resultado (Escavador)
-        setSimpleSearchResult({
-          searchType: data.tipoIdentificador,
-          searchValue: data.valor,
-          results: processosMapeados,
-          resultsCount: processosMapeados.length
-        })
-
-        toast({
-          title: "Busca concluída (Escavador)",
-          description: `${processosMapeados.length} processo(s) encontrado(s)`,
-        })
       }
     } catch (error: any) {
       console.error('Erro na consulta simples:', error)

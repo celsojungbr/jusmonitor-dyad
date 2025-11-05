@@ -45,16 +45,17 @@ const validateParameter = (paramType: string, value: string): boolean => {
   }
 }
 
-// Construir payload específico para cada função
-const buildPayload = (functionName: string, paramType: string, paramValue: string, userId: string) => {
+ // Construir payload específico para cada função
+const buildPayload = (functionName: string, paramType: string, paramValue: string, userId: string): Record<string, any> => {
   const payloadMap: Record<string, any> = {
     'escavador_consulta_CPF_CNPJ': {
       document: paramValue,
-      userId
-  }
+      userId,
+    },
+  };
 
-  return payloadMap[functionName] || {}
-}
+  return payloadMap[functionName] || {};
+};
 
 interface TestResult {
   id: string
