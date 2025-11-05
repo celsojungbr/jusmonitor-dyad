@@ -15,7 +15,7 @@ const Landing = () => {
       <section className="relative min-h-screen flex items-center justify-center overflow-hidden pt-16">
         {/* Background Image */}
         <img
-          src="https://res.cloudinary.com/dsdzoebyq/image/upload/v1762383329/78y_64qjgdhd60og_se1kd8.jpg"
+          src="https://res.cloudinary.com/dsdzoebyq/image/upload/v1762383294/blurred-view-modern-hospital_awgqwc.jpg"
           alt=""
           className="absolute inset-0 w-full h-full object-cover opacity-30"
         />
