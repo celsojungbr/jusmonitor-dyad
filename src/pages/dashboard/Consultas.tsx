@@ -70,7 +70,7 @@ const Consultas = () => {
             data: new Date(search.created_at),
             fromCache: search.from_cache || false,
             creditsConsumed: search.credits_consumed || 0,
-            apiUsed: search.api_used || 'escavador'
+            apiUsed: (search.api_used || 'escavador') as 'judit' | 'escavador'
           }
         })
 
