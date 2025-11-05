@@ -20,6 +20,8 @@ export class AuthService {
   static async signUp(data: SignUpData) {
     const { email, password, fullName, cpfCnpj, userType, oabNumber, phone } = data
 
+    console.log('🔵 Iniciando registro de usuário:', { email, fullName, userType })
+
     // Criar usuário no Supabase Auth
     const { data: authData, error: authError } = await supabase.auth.signUp({
       email,
@@ -35,7 +37,17 @@ export class AuthService {
       }
     })
 
-    if (authError) throw authError
+    if (authError) {
+      console.error('❌ Erro no registro:', authError)
+      throw authError
+    }
+
+    console.log('✅ Usuário criado com sucesso:', {
+      userId: authData.user?.id,
+      email: authData.user?.email,
+      confirmed: authData.user?.email_confirmed_at ? 'Sim' : 'Não',
+      session: authData.session ? 'Criada' : 'Não criada'
+    })
 
     return authData
   }

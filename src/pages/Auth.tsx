@@ -46,7 +46,7 @@ const Auth = () => {
 
         navigate("/dashboard/consultas");
       } else {
-        await AuthService.signUp({
+        const result = await AuthService.signUp({
           email: formData.email,
           password: formData.password,
           fullName: formData.fullName,
@@ -56,12 +56,20 @@ const Auth = () => {
           phone: formData.phone || undefined,
         });
 
-        toast({
-          title: "Conta criada com sucesso!",
-          description: "Você já pode começar a usar o JusMonitor",
-        });
-
-        navigate("/dashboard/consultas");
+        // Verificar se precisa confirmar email
+        if (result.user && !result.session) {
+          toast({
+            title: "Verifique seu email!",
+            description: "Enviamos um link de confirmação para " + formData.email,
+          });
+          console.log('⚠️ Usuário criado mas precisa confirmar email');
+        } else {
+          toast({
+            title: "Conta criada com sucesso!",
+            description: "Você já pode começar a usar o JusMonitor",
+          });
+          navigate("/dashboard/consultas");
+        }
       }
     } catch (error: any) {
       console.error("Erro na autenticação:", error);
