@@ -56,6 +56,12 @@ const App = () => (
           <Route path="monitoramentos" element={<Monitoramentos />} />
           <Route path="senhas" element={<Senhas />} />
           <Route path="planos" element={<Planos />} />
+          <Route path="checkout">
+            <Route path="credits" element={<(await import('./pages/dashboard/checkout/CreditsCheckout')).default />} />
+            <Route path="plan/:planId" element={<(await import('./pages/dashboard/checkout/PlanCheckout')).default />} />
+            <Route path="success" element={<(await import('./pages/dashboard/checkout/CheckoutSuccess')).default />} />
+            <Route path="cancel" element={<(await import('./pages/dashboard/checkout/CheckoutCancel')).default />} />
+          </Route>
           <Route path="perfil" element={<ProfilePage />} />
           <Route path="configuracoes" element={<SettingsPage />} />
         </Route>

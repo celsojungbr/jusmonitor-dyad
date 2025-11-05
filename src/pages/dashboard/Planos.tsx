@@ -4,6 +4,9 @@ import { Badge } from "@/components/ui/badge";
 import { Check, Zap, Loader2 } from "lucide-react";
 import { useSubscriptionPlans, usePricingConfigs, useActivePromotions } from "@/hooks/usePricing";
 import { useCredits } from "@/shared/hooks/useCredits";
+import React, { useState } from "react";
+import { AddCreditsDialog } from "@/features/payments/components/AddCreditsDialog";
+import { SubscribePlanDialog } from "@/features/payments/components/SubscribePlanDialog";
 
 const Planos = () => {
   const { data: plans, isLoading: plansLoading } = useSubscriptionPlans();
@@ -11,6 +14,10 @@ const Planos = () => {
   const { data: promotions } = useActivePromotions();
   const { balance, creditCost, loading: creditsLoading, planType } = useCredits();
   const formatBRL = (value: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
+
+  const [creditsOpen, setCreditsOpen] = useState(false);
+  const [subscribeOpen, setSubscribeOpen] = useState(false);
+  const [selectedPlan, setSelectedPlan] = useState<typeof sortedPlans[0] | null>(null);
 
   // Ordena os planos pela display_order
   const sortedPlans = plans?.sort((a, b) => a.display_order - b.display_order) || [];
@@ -51,7 +58,7 @@ const Planos = () => {
                 Equivalente a {formatBRL(balance * creditCost)} {planType === 'prepaid' ? '(Plano Pré-Pago)' : ''}
               </div>
             </div>
-            <Button size="lg">
+            <Button size="lg" onClick={() => setCreditsOpen(true)}>
               <Zap className="w-5 h-5 mr-2" />
               Adicionar Créditos
             </Button>
@@ -123,6 +130,14 @@ const Planos = () => {
                   <Button
                     className="w-full"
                     variant={!plan.monthly_price ? 'outline' : 'default'}
+                    onClick={() => {
+                      if (plan.monthly_price) {
+                        setSelectedPlan(plan);
+                        setSubscribeOpen(true);
+                      } else {
+                        setCreditsOpen(true);
+                      }
+                    }}
                   >
                     {plan.monthly_price ? `Contratar ${plan.plan_name}` : 'Adicionar Créditos'}
                   </Button>
@@ -155,6 +170,8 @@ const Planos = () => {
           </div>
         </CardContent>
       </Card>
+      <AddCreditsDialog open={creditsOpen} onOpenChange={setCreditsOpen} />
+      <SubscribePlanDialog open={subscribeOpen} onOpenChange={setSubscribeOpen} plan={selectedPlan || null} />
     </div>
   );
 };
