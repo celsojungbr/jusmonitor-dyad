@@ -106,7 +106,7 @@ export default function SettingsPage() {
   };
 
   const handleNotificationChange = (key: string) => {
-    const fieldMap: Record<string, keyof typeof preferences> = {
+    const fieldMap: Record<string, 'email_notifications' | 'process_alerts' | 'credit_alerts' | 'system_updates' | 'marketing_emails'> = {
       'emailNotifications': 'email_notifications',
       'processAlerts': 'process_alerts',
       'creditAlerts': 'credit_alerts',
@@ -119,6 +119,7 @@ export default function SettingsPage() {
       updatePreference(dbField, !preferences[dbField])
     }
   };
+=======
 
   return (
     <div className="container max-w-4xl py-8">

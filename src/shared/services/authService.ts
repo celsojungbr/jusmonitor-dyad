@@ -114,6 +114,11 @@ export class AuthService {
     if (error) throw error
   }
 
+  static async signInWithMagicLink(email: string) {
+    return this.signInWithOtp(email)
+  }
+=======
+
   // Listener para mudanças no estado de autenticação
   static onAuthStateChange(callback: (event: string, session: any) => void) {
     return supabase.auth.onAuthStateChange(callback)
