@@ -1,5 +1,6 @@
 import { supabase } from '@/integrations/supabase/client'
 import { UserType } from '../types'
+import { getOAuthCallbackUrl, getEmailRedirectUrl } from '@/shared/utils/authRedirect'
 
 export interface SignUpData {
   email: string
@@ -106,7 +107,7 @@ export class AuthService {
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: `${window.location.origin}/auth/callback`,
+        redirectTo: getOAuthCallbackUrl(),
         queryParams: {
           access_type: 'offline',
           prompt: 'consent',
@@ -123,7 +124,7 @@ export class AuthService {
     const { error } = await supabase.auth.signInWithOtp({
       email,
       options: {
-        emailRedirectTo: `${window.location.origin}/dashboard/consultas`
+        emailRedirectTo: getEmailRedirectUrl('/dashboard/consultas')
       }
     })
 
