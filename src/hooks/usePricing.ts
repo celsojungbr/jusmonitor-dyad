@@ -24,7 +24,7 @@ export const usePricingConfigs = () => {
         .select('*')
         .order('operation_name');
 
-      if (error) throw error;
+      if (error) throw new Error(error.message);
       return data as PricingConfig[];
     },
   });
@@ -42,7 +42,7 @@ export const useCreatePricingConfig = () => {
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) throw new Error(error.message);
       return data as PricingConfig;
     },
     onSuccess: () => {
@@ -75,7 +75,7 @@ export const useUpdatePricingConfig = () => {
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) throw new Error(error.message);
       return data as PricingConfig;
     },
     onSuccess: () => {
@@ -102,7 +102,7 @@ export const useDeletePricingConfig = () => {
   return useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase.from('pricing_config').delete().eq('id', id);
-      if (error) throw error;
+      if (error) throw new Error(error.message);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['pricing-configs'] });
@@ -138,7 +138,7 @@ export const useSubscriptionPlans = (includeInactive = false) => {
 
       const { data, error } = await query;
 
-      if (error) throw error;
+      if (error) throw new Error(error.message);
       return data as SubscriptionPlan[];
     },
   });
@@ -156,7 +156,7 @@ export const useCreateSubscriptionPlan = () => {
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) throw new Error(error.message);
       return data as SubscriptionPlan;
     },
     onSuccess: () => {
@@ -189,7 +189,7 @@ export const useUpdateSubscriptionPlan = () => {
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) throw new Error(error.message);
       return data as SubscriptionPlan;
     },
     onSuccess: () => {
@@ -216,7 +216,7 @@ export const useDeleteSubscriptionPlan = () => {
   return useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase.from('subscription_plans').delete().eq('id', id);
-      if (error) throw error;
+      if (error) throw new Error(error.message);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['subscription-plans'] });
@@ -252,7 +252,7 @@ export const usePromotions = (includeInactive = false) => {
 
       const { data, error } = await query;
 
-      if (error) throw error;
+      if (error) throw new Error(error.message);
       return data as Promotion[];
     },
   });
@@ -271,7 +271,7 @@ export const useActivePromotions = () => {
         .gte('end_date', now)
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      if (error) throw new Error(error.message);
       return data as Promotion[];
     },
   });
@@ -289,7 +289,7 @@ export const useCreatePromotion = () => {
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) throw new Error(error.message);
       return data as Promotion;
     },
     onSuccess: () => {
@@ -323,7 +323,7 @@ export const useUpdatePromotion = () => {
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) throw new Error(error.message);
       return data as Promotion;
     },
     onSuccess: () => {
@@ -351,7 +351,7 @@ export const useDeletePromotion = () => {
   return useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase.from('promotions').delete().eq('id', id);
-      if (error) throw error;
+      if (error) throw new Error(error.message);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['promotions'] });

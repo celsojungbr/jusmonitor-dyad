@@ -12,7 +12,7 @@ export class PlanoService {
       .eq('user_id', userId)
       .single()
 
-    if (error) throw error
+    if (error) throw new Error(error.message)
 
     return data
   }
@@ -28,7 +28,7 @@ export class PlanoService {
       .order('created_at', { ascending: false })
       .limit(100)
 
-    if (error) throw error
+    if (error) throw new Error(error.message)
 
     return data
   }
@@ -56,7 +56,7 @@ export class PlanoService {
       })
       .eq('user_id', userId)
 
-    if (error) throw error
+    if (error) throw new Error(error.message)
   }
 
   static async purchaseCredits(amount: number) {
@@ -80,7 +80,7 @@ export class PlanoService {
       .update({ credits_balance: plan.credits_balance + amount })
       .eq('user_id', userId)
 
-    if (updateError) throw updateError
+    if (updateError) throw new Error(updateError.message)
 
     // Registrar transação
     const { error: transactionError } = await supabase
@@ -94,7 +94,7 @@ export class PlanoService {
         description: `Compra de ${amount} créditos por R$ ${totalCost.toFixed(2)}`
       })
 
-    if (transactionError) throw transactionError
+    if (transactionError) throw new Error(transactionError.message)
 
     return { amount, totalCost }
   }
@@ -111,7 +111,7 @@ export class PlanoService {
       })
       .eq('user_id', userId)
 
-    if (error) throw error
+    if (error) throw new Error(error.message)
   }
 
   // Calcular economia ao mudar de plano
