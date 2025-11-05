@@ -11,68 +11,80 @@ export function OAuthCallback() {
   useEffect(() => {
     const handleOAuthCallback = async () => {
       try {
-        // Verificar se há uma sessão ativa
-        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-
-        if (sessionError) throw sessionError;
-
-        if (session) {
-          // Verificar se o perfil existe
-          const { data: profile, error: profileError } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', session.user.id)
-            .single();
-
-          if (profileError && profileError.code !== 'PGRST116') {
-            throw profileError;
-          }
-
-          // Se o perfil não existe, criar um
-          if (!profile) {
-            const fullName = session.user.user_metadata?.full_name || 
-                           session.user.user_metadata?.name || 
-                           session.user.email?.split('@')[0] || 
-                           'Usuário';
-
-            const { error: insertError } = await supabase
-              .from('profiles')
-              .insert({
-                id: session.user.id,
-                full_name: fullName,
-                user_type: 'user',
-                cpf_cnpj: '', // Será preenchido depois
-              });
-
-            if (insertError) throw insertError;
-
-            // Criar plano de créditos
-            const { error: creditsError } = await supabase
-              .from('credits_plans')
-              .insert({
-                user_id: session.user.id,
-                plan_type: 'prepaid',
-                credits_balance: 0,
-                credit_cost: 0.50,
-              });
-
-            if (creditsError && creditsError.code !== '23505') { // Ignorar erro de duplicata
-              throw creditsError;
-            }
-          }
-
-          toast({
-            title: 'Login realizado com sucesso!',
-            description: 'Bem-vindo ao JusMonitor',
-          });
-
-          navigate('/dashboard/consultas');
-        } else {
-          throw new Error('Nenhuma sessão encontrada');
+        // Tratar erros retornados pelo provider (se houver)
+        const url = new URL(window.location.href);
+        const providerError = url.searchParams.get('error_description') || url.searchParams.get('error');
+        if (providerError) {
+          throw new Error(providerError);
         }
+
+        // Se houver 'code' na URL, trocar por sessão
+        const code = url.searchParams.get('code');
+        if (code) {
+          const { error: exchangeError } = await supabase.auth.exchangeCodeForSession({ code });
+          if (exchangeError) throw exchangeError;
+          // Limpa parâmetros da URL após sucesso (mantém rota limpa)
+          window.history.replaceState({}, document.title, '/auth/callback');
+        }
+
+        // Agora obter a sessão ativa
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+        if (sessionError) throw sessionError;
+        if (!session) throw new Error('Nenhuma sessão encontrada');
+
+        // Verificar se o perfil existe
+        const { data: profile, error: profileError } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', session.user.id)
+          .single();
+
+        if (profileError && profileError.code !== 'PGRST116') {
+          throw profileError;
+        }
+
+        // Se o perfil não existe, criar um
+        if (!profile) {
+          const fullName = session.user.user_metadata?.full_name ||
+                        session.user.user_metadata?.name ||
+                        session.user.email?.split('@')[0] ||
+                        'Usuário';
+
+          const { error: insertError } = await supabase
+            .from('profiles')
+            .insert({
+              id: session.user.id,
+              full_name: fullName,
+              user_type: 'user',
+              cpf_cnpj: '',
+            });
+
+          if (insertError) throw insertError;
+
+          // Criar plano de créditos
+          const { error: creditsError } = await supabase
+            .from('credits_plans')
+            .insert({
+              user_id: session.user.id,
+              plan_type: 'prepaid',
+              credits_balance: 0,
+              credit_cost: 0.50,
+            });
+
+          if (creditsError && creditsError.code !== '23505') {
+            throw creditsError;
+          }
+        }
+
+        toast({
+          title: 'Login realizado com sucesso!',
+          description: 'Bem-vindo ao JusMonitor',
+        });
+
+        navigate('/dashboard/consultas');
       } catch (error: any) {
         console.error('Erro no callback OAuth:', error);
-        
+
         toast({
           title: 'Erro no login',
           description: error.message || 'Não foi possível completar o login com Google',
