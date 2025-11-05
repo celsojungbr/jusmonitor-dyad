@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -6,18 +6,23 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { User, Scale, Mail } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { AuthService } from "@/shared/services/authService";
 import { PasswordRecovery } from "@/components/auth/PasswordRecovery";
 import logoBlack from "@/assets/logo-horizontal-black.png";
 
 const Auth = () => {
-  const [isLogin, setIsLogin] = useState(true);
+  const location = useLocation();
+  const [isLogin, setIsLogin] = useState(location.pathname !== "/register");
   const [userType, setUserType] = useState<"user" | "lawyer">("user");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
+
+  useEffect(() => {
+    setIsLogin(location.pathname !== "/register");
+  }, [location.pathname]);
 
   const [formData, setFormData] = useState({
     email: "",

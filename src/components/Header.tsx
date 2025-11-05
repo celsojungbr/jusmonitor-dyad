@@ -100,10 +100,10 @@ const Header = () => {
         {/* Auth Buttons */}
         <div className="flex items-center gap-3">
           <Button asChild variant="ghost" className="hidden sm:inline-flex">
-            <Link to="/auth">Entrar</Link>
+            <Link to="/login">Entrar</Link>
           </Button>
           <Button asChild>
-            <Link to="/auth">Criar Conta</Link>
+            <Link to="/register">Criar Conta</Link>
           </Button>
         </div>
       </div>

@@ -38,6 +38,8 @@ const App = () => (
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<Landing />} />
+        <Route path="/login" element={<Auth />} />
+        <Route path="/register" element={<Auth />} />
         <Route path="/auth" element={<Auth />} />
         <Route path="/auth/callback" element={<OAuthCallback />} />
         <Route path="/reset-password" element={<ResetPassword />} />
