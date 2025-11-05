@@ -12,22 +12,7 @@ export const FEATURES_CONFIG: Feature[] = [
         availableProviders: [
           { name: 'escavador', displayName: 'Escavador' }
         ]
-      },
-      {
-        functionName: 'judit-search-document',
-        displayName: 'JUDiT - Consulta por Documento',
-        availableProviders: [
-          { name: 'judit', displayName: 'JUDiT' }
-        ]
-      },
-      {
-        functionName: 'judit_consulta_hot_storage',
-        displayName: 'JUDiT - Hot Storage (Datalake)',
-        availableProviders: [
-          { name: 'judit', displayName: 'JUDiT Hot Storage' }
-        ]
       }
     ]
   }
-  // Mais features serão adicionadas no futuro
 ]

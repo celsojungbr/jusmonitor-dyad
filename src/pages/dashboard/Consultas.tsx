@@ -244,58 +244,15 @@ const Consultas = () => {
     try {
       const userId = (await supabase.auth.getUser()).data.user?.id
 
-      // Para CPF/CNPJ: usar nova função Escavador v2
+      // Para CPF/CNPJ: usar somente Escavador (edge function escavador_consulta_CPF_CNPJ)
       if (data.tipoIdentificador === 'cpf' || data.tipoIdentificador === 'cnpj') {
-        console.log('Iniciando busca CPF/CNPJ:', data.valor)
+        console.log('Iniciando busca CPF/CNPJ (Escavador):', data.valor)
+        setLoadingStep('Consultando Escavador...')
         
-        setLoadingStep('Criando requisição de busca...')
-        
-        const response = await supabase.functions.invoke('search-document-orchestrator', {
-          body: {
-            userId,
-            document: data.valor
-          }
-        })
-
-        console.log('Resposta da função:', response)
-        
-        setLoadingStep('Recebendo dados dos processos...')
-
-        if (response.error) {
-          console.error('Erro na invocação:', response.error)
-          throw response.error
-        }
-
-        const result = response.data
+        const result = await ConsultaService.searchEscavadorDocument(data.valor)
 
         if (!result) {
           throw new Error('Resposta vazia da API')
-        }
-
-        // Tratar erros específicos
-        if (result.error) {
-          if (result.error === 'Unauthenticated') {
-            toast({
-              title: "Erro de autenticação",
-              description: "Problema com as credenciais da API de busca",
-              variant: "destructive",
-            })
-          } else if (result.error.includes('saldo')) {
-            toast({
-              title: "Sem créditos na API",
-              description: "Você não possui saldo para realizar esta busca",
-              variant: "destructive",
-            })
-          } else if (result.error.includes('Timeout')) {
-            toast({
-              title: "Tempo esgotado",
-              description: "A busca demorou muito. Tente novamente.",
-              variant: "destructive",
-            })
-          } else {
-            throw new Error(result.error)
-          }
-          return
         }
 
         console.log('Resultados encontrados:', result.results_count)
@@ -320,40 +277,7 @@ const Consultas = () => {
         // Detectar formato da resposta (JUDiT ou Escavador)
         let processosMapeados: Process[] = []
 
-        if (result.lawsuits) {
-          // Formato JUDiT
-          console.log('Processando resultados JUDiT:', result.lawsuits.length)
-          
-          processosMapeados = result.lawsuits.map((lawsuit: any) => {
-            const authors = lawsuit.parties
-              ?.filter((p: any) => p.side === 'Active')
-              .map((p: any) => p.name) || []
-            
-            const defendants = lawsuit.parties
-              ?.filter((p: any) => p.side === 'Passive')
-              .map((p: any) => p.name) || []
-            
-            const documents = lawsuit.parties
-              ?.filter((p: any) => p.document)
-              .map((p: any) => p.document) || []
-
-            return {
-              id: lawsuit.code,
-              cnj_number: lawsuit.code,
-              tribunal: lawsuit.tribunal_acronym || 'Desconhecido',
-              court_name: lawsuit.courts?.[0]?.name || null,
-              distribution_date: lawsuit.distribution_date || null,
-              status: lawsuit.status || null,
-              phase: lawsuit.phase || null,
-              case_value: lawsuit.amount || null,
-              author_names: authors,
-              defendant_names: defendants,
-              parties_cpf_cnpj: documents.length > 0 ? documents : [data.valor.replace(/\D/g, '')],
-              last_update: new Date().toISOString(),
-              created_at: new Date().toISOString(),
-            } as Process
-          })
-        } else if (result.items) {
+        if (result.items) {
           // Formato Escavador
           console.log('Processando resultados Escavador:', result.items.length)
           
@@ -397,18 +321,14 @@ const Consultas = () => {
           duration: 5000,
         })
       } else {
-        // Para CNJ/OAB: usar lógica anterior
-        const response = await supabase.functions.invoke('search-processes-simple', {
-          body: {
-            searchType: data.tipoIdentificador,
-            searchValue: data.valor,
-            userId
-          }
+        // CNJ/OAB: indisponível nesta versão (apenas Escavador CPF/CNPJ)
+        toast({
+          title: "Em breve",
+          description: "Busca por CNJ/OAB estará disponível na próxima versão.",
         })
-
-        if (response.error) throw response.error
-
-        const simpleResult = response.data
+        setLoading(false)
+        setLoadingStep('')
+        return
         
         const buscaId = Date.now().toString()
         const novaBusca: Busca = {
@@ -426,17 +346,17 @@ const Consultas = () => {
         setBuscas([novaBusca, ...buscas])
         setProcessosCache(prev => ({ ...prev, [buscaId]: simpleResult.processes || [] }))
         
-        // Guardar resultado para opção de aprofundamento
+        // Guardar resultado (Escavador)
         setSimpleSearchResult({
           searchType: data.tipoIdentificador,
           searchValue: data.valor,
-          results: simpleResult.processes || [],
-          resultsCount: simpleResult.results_count
+          results: processosMapeados,
+          resultsCount: processosMapeados.length
         })
 
         toast({
-          title: "Busca simples concluída (gratuita)",
-          description: `${simpleResult.results_count} processo(s) encontrado(s)`,
+          title: "Busca concluída (Escavador)",
+          description: `${processosMapeados.length} processo(s) encontrado(s)`,
         })
       }
     } catch (error: any) {
@@ -454,76 +374,12 @@ const Consultas = () => {
     }
   }
 
+  // Busca profunda desativada nesta versão (somente Escavador CPF/CNPJ)
   const handleDeepSearch = async () => {
-    if (!simpleSearchResult) return
-
-    setLoading(true)
-    
-    try {
-      const userId = (await supabase.auth.getUser()).data.user?.id
-      
-      const response = await supabase.functions.invoke('search-processes-async', {
-        body: {
-          searchType: simpleSearchResult.searchType,
-          searchValue: simpleSearchResult.searchValue,
-          userId
-        }
-      })
-
-      if (response.error) throw response.error
-
-      const asyncResult = response.data
-
-      if (asyncResult.status === 'processing') {
-        // Busca assíncrona iniciada
-        setDeepSearchInProgress({
-          async_search_id: asyncResult.async_search_id,
-          request_id: asyncResult.request_id,
-          searchType: simpleSearchResult.searchType,
-          searchValue: simpleSearchResult.searchValue,
-          credits_consumed: asyncResult.credits_consumed,
-          started_at: new Date()
-        })
-
-        toast({
-          title: "Busca completa iniciada",
-          description: `Buscando nos tribunais... Tempo estimado: ${asyncResult.estimated_time_minutes} minutos`,
-        })
-      } else if (asyncResult.status === 'completed') {
-        // Cache hit - dados retornados imediatamente
-        const buscaId = Date.now().toString()
-        const novaBusca: Busca = {
-          id: buscaId,
-          tipo: 'processual',
-          tipoIdentificador: simpleSearchResult.searchType,
-          valor: simpleSearchResult.searchValue,
-          resultados: asyncResult.results_count,
-          data: new Date(),
-          fromCache: true,
-          creditsConsumed: asyncResult.credits_consumed,
-          apiUsed: 'judit'
-        }
-
-        setBuscas(prev => [novaBusca, ...prev])
-        setProcessosCache(prev => ({ ...prev, [buscaId]: asyncResult.processes || [] }))
-        setSimpleSearchResult(null)
-
-        toast({
-          title: "Busca completa (cache)",
-          description: `${asyncResult.results_count} processo(s) encontrado(s) • ${asyncResult.credits_consumed} créditos`,
-        })
-      }
-    } catch (error: any) {
-      console.error('Erro na busca completa:', error)
-      
-      toast({
-        title: "Erro na busca completa",
-        description: error.message || "Não foi possível iniciar a busca nos tribunais",
-        variant: "destructive"
-      })
-    } finally {
-      setLoading(false)
-    }
+    toast({
+      title: "Em breve",
+      description: "A busca direta nos tribunais será disponibilizada futuramente.",
+    })
   }
 
   const handleConsultaCadastral = async (data: ConsultaCadastralData) => {
@@ -636,23 +492,18 @@ const Consultas = () => {
         loadingStep={loadingStep}
       />
 
-      {/* Card de resultado da busca simples com opção de aprofundar */}
+      {/* Resultado da busca (Escavador) */}
       {simpleSearchResult && !deepSearchInProgress && (
         <Card>
           <CardHeader>
-            <CardTitle>Busca Simples Concluída</CardTitle>
+            <CardTitle>Busca Concluída</CardTitle>
             <CardDescription>
-              Encontramos {simpleSearchResult.resultsCount} processo(s) em consulta rápida
+              Encontramos {simpleSearchResult.resultsCount} processo(s) via Escavador
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <p className="text-sm text-muted-foreground">
-              Deseja aprofundar a busca e pesquisar diretamente nos tribunais em tempo real?
-              <br />
-              <strong>Custo: 3 créditos</strong> • Tempo estimado: 2-5 minutos
-            </p>
-            <Button onClick={handleDeepSearch} disabled={loading}>
-              Buscar nos Tribunais (3 créditos)
+          <CardContent className="space-y-2">
+            <Button onClick={handleDeepSearch} disabled={loading} variant="outline">
+              Buscar nos Tribunais (em breve)
             </Button>
           </CardContent>
         </Card>

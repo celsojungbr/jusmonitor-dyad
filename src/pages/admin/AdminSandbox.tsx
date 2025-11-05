@@ -24,16 +24,7 @@ import {
 
 // Lista de edge functions disponíveis para teste
 const EDGE_FUNCTIONS = [
-  { value: "search-document-orchestrator", label: "Busca por CPF/CNPJ (Orchestrator)", params: ["cpf", "cnpj"], creditCost: 10 },
-  { value: "search-processes-simple", label: "Busca Processual Simples", params: ["cpf", "cnpj", "oab"], creditCost: 5 },
-  { value: "search-processes-async", label: "Busca Processual Assíncrona", params: ["cpf", "cnpj", "oab"], creditCost: 10 },
-  { value: "judit-search-document", label: "JUDiT - Busca por Documento", params: ["cpf", "cnpj"], creditCost: 8 },
   { value: "escavador_consulta_CPF_CNPJ", label: "Escavador - Consulta CPF/CNPJ", params: ["cpf", "cnpj"], creditCost: 8 },
-  { value: "search-criminal-records", label: "Busca de Antecedentes Criminais", params: ["cpf", "cnj"], creditCost: 5 },
-  { value: "search-registration-data", label: "Busca de Dados Cadastrais", params: ["cpf", "cnpj"], creditCost: 3 },
-  { value: "check-judit-request-status", label: "Verificar Status JUDiT", params: ["requestId"], creditCost: 0 },
-  { value: "check-api-balance", label: "Verificar Saldo de APIs", params: [], creditCost: 0 },
-  { value: "get-process-details", label: "Detalhes de Processo", params: ["cnj"], creditCost: 2 },
 ]
 
 // Validação de parâmetros
@@ -47,8 +38,6 @@ const validateParameter = (paramType: string, value: string): boolean => {
       return /^\d{14}$/.test(value.replace(/\D/g, ''))
     case 'cnj':
       return /^\d{20}$/.test(value.replace(/\D/g, ''))
-    case 'requestId':
-      return /^[a-f0-9-]{36}$/i.test(value)
     case 'oab':
       return value.length >= 3
     default:
@@ -59,46 +48,9 @@ const validateParameter = (paramType: string, value: string): boolean => {
 // Construir payload específico para cada função
 const buildPayload = (functionName: string, paramType: string, paramValue: string, userId: string) => {
   const payloadMap: Record<string, any> = {
-    'search-document-orchestrator': {
-      document: paramValue,
-      documentType: paramType,
-      userId
-    },
-    'search-registration-data': {
-      documentType: paramType,
-      document: paramValue,
-      userId
-    },
-    'search-criminal-records': 
-      paramType === 'cpf' 
-        ? { cpf: paramValue, userId }
-        : { cnj: paramValue, userId },
-    'search-processes-simple': {
-      searchType: paramType,
-      searchValue: paramValue,
-      userId
-    },
-    'search-processes-async': {
-      searchType: paramType,
-      searchValue: paramValue,
-      userId
-    },
-    'judit-search-document': {
-      document: paramValue,
-      documentType: paramType,
-      userId
-    },
     'escavador_consulta_CPF_CNPJ': {
       document: paramValue,
       userId
-    },
-    'get-process-details': {
-      cnjNumber: paramValue
-    },
-    'check-judit-request-status': {
-      requestId: paramValue
-    },
-    'check-api-balance': {}
   }
 
   return payloadMap[functionName] || {}

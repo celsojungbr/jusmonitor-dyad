@@ -228,44 +228,6 @@ const AdminApis = () => {
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">
-        {/* JUDiT */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center justify-between">
-              <span>JUDiT API</span>
-              {balances?.judit?.success ? (
-                <Activity className="h-5 w-5 text-green-500" />
-              ) : (
-                <AlertCircle className="h-5 w-5 text-red-500" />
-              )}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {balances?.judit?.success ? (
-              <div className="space-y-2">
-                <div className="flex justify-between">
-                  <span className="text-sm text-muted-foreground">Saldo:</span>
-                  <span className="font-semibold">{balances.judit.balance || 0}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-sm text-muted-foreground">Consumido:</span>
-                  <span>{balances.judit.consumed || 0}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-sm text-muted-foreground">Total:</span>
-                  <span>{balances.judit.total || 0}</span>
-                </div>
-                <div className="text-xs text-muted-foreground mt-4">
-                  Última verificação: {new Date(balances.judit.lastCheck).toLocaleString('pt-BR')}
-                </div>
-              </div>
-            ) : (
-              <div className="text-sm text-red-600">
-                Erro: {balances?.judit?.error || "Não disponível"}
-              </div>
-            )}
-          </CardContent>
-        </Card>
 
         {/* Escavador */}
         <Card>
@@ -307,69 +269,6 @@ const AdminApis = () => {
         </Card>
       </div>
 
-      {/* Verificação Manual de Request JUDiT */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Verificar Request JUDiT</CardTitle>
-          <CardDescription>
-            Consulte o status de um request específico da JUDiT API
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex gap-2">
-            <Input
-              placeholder="Request ID (ex: 302a1107-4b63-455a-a605-beb23c0b6b7b)"
-              value={manualRequestId}
-              onChange={(e) => setManualRequestId(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && checkRequestStatus()}
-            />
-            <Button onClick={checkRequestStatus} disabled={checkingRequest}>
-              {checkingRequest ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <Search className="h-4 w-4" />
-              )}
-            </Button>
-          </div>
-          
-          {requestStatus && (
-            <div className="p-4 rounded-lg bg-muted space-y-2">
-              <div className="flex justify-between items-center">
-                <span className="font-semibold">Status:</span>
-                <Badge variant={requestStatus.status === 'completed' ? 'default' : 'secondary'}>
-                  {requestStatus.status}
-                </Badge>
-              </div>
-              <div className="flex justify-between">
-                <span className="font-semibold">Request ID:</span>
-                <span className="text-sm font-mono">{requestStatus.request_id}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="font-semibold">Criado em:</span>
-                <span className="text-sm">{new Date(requestStatus.created_at).toLocaleString('pt-BR')}</span>
-              </div>
-              {requestStatus.completed_at && (
-                <div className="flex justify-between">
-                  <span className="font-semibold">Completado em:</span>
-                  <span className="text-sm">{new Date(requestStatus.completed_at).toLocaleString('pt-BR')}</span>
-                </div>
-              )}
-              <div className="flex justify-between">
-                <span className="font-semibold">Resultados:</span>
-                <span className="font-bold">{requestStatus.results_count}</span>
-              </div>
-              {requestStatus.results && requestStatus.results_count > 0 && (
-                <div className="mt-4 p-3 bg-background rounded border">
-                  <div className="text-sm font-semibold mb-2">Detalhes dos Resultados:</div>
-                  <pre className="text-xs overflow-auto max-h-40">
-                    {JSON.stringify(requestStatus.results, null, 2)}
-                  </pre>
-                </div>
-              )}
-            </div>
-          )}
-        </CardContent>
-      </Card>
 
         <Tabs defaultValue="configs" className="w-full">
           <TabsList>
