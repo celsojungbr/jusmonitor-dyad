@@ -89,7 +89,7 @@ const buildPayload = (functionName: string, paramType: string, paramValue: strin
       userId
     },
     'escavador_consulta_CPF_CNPJ': {
-      [paramType]: paramValue,
+      document: paramValue,
       userId
     },
     'get-process-details': {
