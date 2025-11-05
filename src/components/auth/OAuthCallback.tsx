@@ -21,7 +21,7 @@ export function OAuthCallback() {
         // Se houver 'code' na URL, trocar por sessão
         const code = url.searchParams.get('code');
         if (code) {
-          const { error: exchangeError } = await supabase.auth.exchangeCodeForSession({ code });
+          const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
           if (exchangeError) throw exchangeError;
           // Limpa parâmetros da URL após sucesso (mantém rota limpa)
           window.history.replaceState({}, document.title, '/auth/callback');
