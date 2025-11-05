@@ -156,6 +156,20 @@ Deno.serve(async (req) => {
       )
     }
 
+    if (response.status === 403) {
+      const errorJson = await response.json().catch(() => null)
+      const errorMsg = errorJson?.error || 'Acesso negado pela API Escavador'
+      console.error('[Escavador CPF/CNPJ] Erro 403:', errorMsg)
+      return new Response(
+        JSON.stringify({ 
+          error: errorMsg.includes('bloqueado') || errorMsg.includes('recarga')
+            ? 'Saldo da API Escavador está bloqueado. Faça uma recarga para continuar usando.'
+            : errorMsg
+        }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
     if (response.status === 422) {
       const errorJson = await response.json().catch(() => null)
       console.log('[Escavador CPF/CNPJ] 422 recebido:', errorJson)
