@@ -3,11 +3,14 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Check, Zap, Loader2 } from "lucide-react";
 import { useSubscriptionPlans, usePricingConfigs, useActivePromotions } from "@/hooks/usePricing";
+import { useCredits } from "@/shared/hooks/useCredits";
 
 const Planos = () => {
   const { data: plans, isLoading: plansLoading } = useSubscriptionPlans();
   const { data: pricingConfigs, isLoading: pricingLoading } = usePricingConfigs();
   const { data: promotions } = useActivePromotions();
+  const { balance, creditCost, loading: creditsLoading, planType } = useCredits();
+  const formatBRL = (value: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
 
   // Ordena os planos pela display_order
   const sortedPlans = plans?.sort((a, b) => a.display_order - b.display_order) || [];
@@ -21,7 +24,7 @@ const Planos = () => {
     return Math.round(savings);
   };
 
-  if (plansLoading || pricingLoading) {
+  if (plansLoading || pricingLoading || creditsLoading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -43,9 +46,9 @@ const Planos = () => {
           <div className="flex items-center justify-between">
             <div>
               <div className="text-sm text-muted-foreground mb-1">Saldo Atual</div>
-              <div className="text-4xl font-bold text-primary">250 créditos</div>
+              <div className="text-4xl font-bold text-primary">{balance} créditos</div>
               <div className="text-sm text-muted-foreground mt-1">
-                Equivalente a R$ 375,00 (Plano Pré-Pago)
+                Equivalente a {formatBRL(balance * creditCost)} {planType === 'prepaid' ? '(Plano Pré-Pago)' : ''}
               </div>
             </div>
             <Button size="lg">

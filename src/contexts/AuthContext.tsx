@@ -123,15 +123,52 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
             if (insertError) throw insertError
 
-            // Criar plano de créditos
-            await supabase
+            // Garantir plano de créditos com possível bônus de promoção ativa
+            const { data: existingPlan } = await supabase
               .from('credits_plans')
-              .insert({
-                user_id: userId,
-                plan_type: 'prepaid',
-                credits_balance: 0,
-                credit_cost: 0.50,
-              })
+              .select('*')
+              .eq('user_id', userId)
+              .maybeSingle();
+
+            let initialCredits = 0;
+            const nowIso = new Date().toISOString();
+
+            const { data: activeBonus } = await supabase
+              .from('promotions')
+              .select('bonus_credits,start_date,end_date,is_active')
+              .eq('promotion_type', 'bonus_credits')
+              .eq('is_active', true)
+              .lte('start_date', nowIso)
+              .gte('end_date', nowIso)
+              .limit(1)
+              .maybeSingle();
+
+            if (activeBonus?.bonus_credits && activeBonus.bonus_credits > 0) {
+              initialCredits = activeBonus.bonus_credits;
+            }
+
+            if (!existingPlan) {
+              await supabase
+                .from('credits_plans')
+                .insert({
+                  user_id: userId,
+                  plan_type: 'prepaid',
+                  credits_balance: initialCredits,
+                  credit_cost: 0.50,
+                });
+            } else if (existingPlan.credits_balance === 0) {
+              // Apenas aplicar bônus se for realmente novo (sem transações)
+              const { count } = await supabase
+                .from('credit_transactions')
+                .select('id', { count: 'exact', head: true })
+                .eq('user_id', userId);
+              if ((count ?? 0) === 0 && initialCredits > 0) {
+                await supabase
+                  .from('credits_plans')
+                  .update({ credits_balance: initialCredits })
+                  .eq('user_id', userId);
+              }
+            }
 
             setProfile(newProfile)
             return
@@ -141,6 +178,39 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
       
       setProfile(data)
+      // Garantir créditos iniciais se houver promoção ativa para novos usuários
+      const { data: planCheck } = await supabase
+        .from('credits_plans')
+        .select('*')
+        .eq('user_id', userId)
+        .maybeSingle();
+
+      const nowIso2 = new Date().toISOString();
+      const { data: activeBonus2 } = await supabase
+        .from('promotions')
+        .select('bonus_credits,start_date,end_date,is_active')
+        .eq('promotion_type', 'bonus_credits')
+        .eq('is_active', true)
+        .lte('start_date', nowIso2)
+        .gte('end_date', nowIso2)
+        .limit(1)
+        .maybeSingle();
+
+      const bonusAmount2 = activeBonus2?.bonus_credits && activeBonus2.bonus_credits > 0 ? activeBonus2.bonus_credits : 0;
+
+      if (planCheck && planCheck.credits_balance === 0 && bonusAmount2 > 0) {
+        const { count: txCount } = await supabase
+          .from('credit_transactions')
+          .select('id', { count: 'exact', head: true })
+          .eq('user_id', userId);
+
+        if ((txCount ?? 0) === 0) {
+          await supabase
+            .from('credits_plans')
+            .update({ credits_balance: bonusAmount2 })
+            .eq('user_id', userId);
+        }
+      }
     } catch (error) {
       console.error('Error loading profile:', error)
       setProfile(null)

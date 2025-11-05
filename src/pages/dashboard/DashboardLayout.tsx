@@ -1,4 +1,4 @@
-import { SidebarProvider, Sidebar, SidebarContent, SidebarHeader, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarTrigger } from "@/components/ui/sidebar";
+import { SidebarProvider, Sidebar, SidebarContent, SidebarHeader, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarTrigger, SidebarFooter } from "@/components/ui/sidebar";
 import { Search, Bell, Key, CreditCard, User, Settings, Shield } from "lucide-react";
 import { Outlet, Link, useLocation, useNavigate } from "react-router-dom";
 import { Suspense } from "react";
@@ -6,6 +6,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/shared/hooks/useAuth";
 import { useAdmin } from "@/shared/hooks/useAdmin";
+import { useCredits } from "@/shared/hooks/useCredits";
 import { LogoutButton } from "@/components/auth/LogoutButton";
 import { LoadingSkeleton } from "@/components/LoadingSkeleton";
 import avatarIcon from "@/assets/avatar-icon.png";
@@ -22,6 +23,7 @@ const DashboardLayout = () => {
   const navigate = useNavigate();
   const { profile } = useAuth();
   const { isAdmin } = useAdmin();
+  const { balance } = useCredits();
 
   // Obter iniciais do nome
   const getInitials = (name: string) => {
@@ -65,6 +67,14 @@ const DashboardLayout = () => {
               })}
             </SidebarMenu>
           </SidebarContent>
+          <SidebarFooter>
+            <div className="px-3 pb-2">
+              <div className="rounded-lg bg-sidebar-accent/60 text-sidebar-accent-foreground p-2 flex items-center justify-between">
+                <span className="text-xs">Saldo</span>
+                <span className="text-sm font-medium">{balance} créditos</span>
+              </div>
+            </div>
+          </SidebarFooter>
         </Sidebar>
 
         <div className="flex-1 flex flex-col">
