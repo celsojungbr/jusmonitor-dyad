@@ -8,8 +8,6 @@ import { useAuth } from "@/shared/hooks/useAuth";
 import { useAdmin } from "@/shared/hooks/useAdmin";
 import { LogoutButton } from "@/components/auth/LogoutButton";
 import { LoadingSkeleton } from "@/components/LoadingSkeleton";
-import logoTypo from "@/assets/logotype-black.png";
-import logoHorizontal from "@/assets/logo-horizontal-black.png";
 import avatarIcon from "@/assets/avatar-icon.png";
 
 const navigation = [
@@ -45,8 +43,8 @@ const DashboardLayout = () => {
         <Sidebar collapsible="icon">
           <SidebarHeader>
             <div className="flex items-center gap-2 px-2 py-4">
-              <img src={logoTypo} alt="JM" className="h-8 group-data-[collapsible=icon]:hidden" />
-              <img src={logoHorizontal} alt="JusMonitor" className="h-8 hidden group-data-[collapsible=icon]:block" />
+              <img src="https://res.cloudinary.com/dsdzoebyq/image/upload/v1762059245/JUSMONITOR_Logo_Horizontal_Black_ppc9km.png" alt="JusMonitor" className="h-8 group-data-[collapsible=icon]:hidden" />
+              <img src="https://res.cloudinary.com/dsdzoebyq/image/upload/v1762059245/JUSMONITOR_Logo_Horizontal_Black_ppc9km.png" alt="JusMonitor" className="h-8 hidden group-data-[collapsible=icon]:block" />
             </div>
           </SidebarHeader>
           
