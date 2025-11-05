@@ -13,19 +13,12 @@ const Landing = () => {
 
       {/* Hero Section */}
       <section className="relative min-h-screen flex items-center justify-center overflow-hidden pt-16">
-        {/* Video Background */}
-        <video
-          autoPlay
-          loop
-          muted
-          playsInline
-          className="absolute inset-0 w-full h-full object-cover opacity-20"
-        >
-          <source
-            src="https://res.cloudinary.com/dsdzoebyq/video/upload/v1762060309/7892_Particles_Particle_1920x1080_gkyqa8.mp4"
-            type="video/mp4"
-          />
-        </video>
+        {/* Background Image */}
+        <img
+          src="https://res.cloudinary.com/dsdzoebyq/image/upload/v1762383283/Background_10_c0imlc.jpg"
+          alt=""
+          className="absolute inset-0 w-full h-full object-cover opacity-30"
+        />
 
         {/* Gradient Overlay */}
         <div className="absolute inset-0 bg-gradient-to-b from-background/95 via-background/85 to-background" />
