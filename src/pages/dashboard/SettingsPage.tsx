@@ -119,7 +119,6 @@ export default function SettingsPage() {
       updatePreference(dbField, !preferences[dbField])
     }
   };
-=======
 
   return (
     <div className="container max-w-4xl py-8">

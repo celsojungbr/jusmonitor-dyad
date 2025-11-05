@@ -94,7 +94,11 @@ export class AuthService {
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: `${window.location.origin}/dashboard/consultas`
+        redirectTo: `${window.location.origin}/auth/callback`,
+        queryParams: {
+          access_type: 'offline',
+          prompt: 'consent',
+        }
       }
     })
 
@@ -117,7 +121,6 @@ export class AuthService {
   static async signInWithMagicLink(email: string) {
     return this.signInWithOtp(email)
   }
-=======
 
   // Listener para mudanças no estado de autenticação
   static onAuthStateChange(callback: (event: string, session: any) => void) {

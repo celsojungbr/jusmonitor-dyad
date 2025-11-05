@@ -95,7 +95,51 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         .eq('id', userId)
         .single()
 
-      if (error) throw error
+      if (error) {
+        // Se o perfil não existe (erro PGRST116), tentar criar
+        if (error.code === 'PGRST116') {
+          console.log('Perfil não encontrado, criando...')
+          
+          // Obter dados do usuário
+          const { data: { user } } = await supabase.auth.getUser()
+          
+          if (user) {
+            const fullName = user.user_metadata?.full_name ||
+                           user.user_metadata?.name ||
+                           user.email?.split('@')[0] ||
+                           'Usuário'
+
+            // Criar perfil
+            const { data: newProfile, error: insertError } = await supabase
+              .from('profiles')
+              .insert({
+                id: userId,
+                full_name: fullName,
+                user_type: 'user',
+                cpf_cnpj: '',
+              })
+              .select()
+              .single()
+
+            if (insertError) throw insertError
+
+            // Criar plano de créditos
+            await supabase
+              .from('credits_plans')
+              .insert({
+                user_id: userId,
+                plan_type: 'prepaid',
+                credits_balance: 0,
+                credit_cost: 0.50,
+              })
+
+            setProfile(newProfile)
+            return
+          }
+        }
+        throw error
+      }
+      
       setProfile(data)
     } catch (error) {
       console.error('Error loading profile:', error)

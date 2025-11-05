@@ -11,6 +11,7 @@ import Precos from "./pages/Precos";
 import Sobre from "./pages/Sobre";
 import { ResetPassword } from "@/components/auth/ResetPassword";
 import { EmailVerification } from "@/components/auth/EmailVerification";
+import { OAuthCallback } from "@/components/auth/OAuthCallback";
 import DashboardLayout from "./pages/dashboard/DashboardLayout";
 import Consultas from "./pages/dashboard/Consultas";
 import { ProcessoDetalhes } from "@/features/processos/components/ProcessoDetalhes";
@@ -42,6 +43,7 @@ const App = () => (
         <Routes>
           <Route path="/" element={<Landing />} />
           <Route path="/auth" element={<Auth />} />
+          <Route path="/auth/callback" element={<OAuthCallback />} />
           <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/verify-email" element={<EmailVerification />} />
           <Route path="/precos" element={<Precos />} />
