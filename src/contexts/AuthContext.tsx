@@ -4,15 +4,49 @@ import { AuthService } from '@/shared/services/authService'
 import { Profile } from '@/shared/types'
 import { supabase } from '@/integrations/supabase/client'
 
+/**
+ * Authentication Context
+ * 
+ * Provides authentication state and methods throughout the application.
+ * 
+ * @example
+ * ```typescript
+ * import { useAuth } from '@/contexts/AuthContext'
+ * 
+ * function MyComponent() {
+ *   const { user, profile, isAuthenticated, isAdmin, signOut } = useAuth()
+ *   
+ *   if (!isAuthenticated) {
+ *     return <div>Please login</div>
+ *   }
+ *   
+ *   return (
+ *     <div>
+ *       <p>Welcome, {profile?.full_name}!</p>
+ *       <button onClick={signOut}>Logout</button>
+ *     </div>
+ *   )
+ * }
+ * ```
+ */
 interface AuthContextType {
+  /** Supabase user object (contains email, id, etc.) */
   user: User | null
+  /** Current session with JWT token */
   session: Session | null
+  /** User profile from database (contains full_name, user_type, etc.) */
   profile: Profile | null
+  /** Loading state while checking authentication */
   loading: boolean
+  /** True if user is logged in */
   isAuthenticated: boolean
+  /** True if user has admin role */
   isAdmin: boolean
+  /** True if user has lawyer role */
   isLawyer: boolean
+  /** True if user has regular user role */
   isUser: boolean
+  /** Function to sign out the user */
   signOut: () => Promise<void>
 }
 
@@ -25,83 +59,72 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    // Buscar sessão e perfil em paralelo
-    const initializeAuth = async () => {
-      try {
-        const session = await AuthService.getSession()
-        setSession(session)
-        setUser(session?.user ?? null)
-
-        if (session?.user) {
-          // Buscar perfil apenas se houver usuário
-          const { data } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', session.user.id)
-            .single()
-
-          setProfile(data)
-        }
-      } catch (error) {
-        console.error('Error initializing auth:', error)
-      } finally {
+    // Get initial session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session)
+      setUser(session?.user ?? null)
+      if (session?.user) {
+        loadProfile(session.user.id)
+      } else {
         setLoading(false)
       }
-    }
+    })
 
-    initializeAuth()
-
-    // Listener para mudanças de autenticação
-    const { data: { subscription } } = AuthService.onAuthStateChange(
-      (event, session) => {
-        // CRÍTICO: Apenas operações síncronas aqui
-        setSession(session)
-        setUser(session?.user ?? null)
+    // Listen for auth changes
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session)
+      setUser(session?.user ?? null)
+      if (session?.user) {
+        loadProfile(session.user.id)
+      } else {
+        setProfile(null)
         setLoading(false)
-
-        // Usar setTimeout para adiar chamadas ao Supabase
-        if (session?.user) {
-          setTimeout(async () => {
-            const { data } = await supabase
-              .from('profiles')
-              .select('*')
-              .eq('id', session.user.id)
-              .single()
-
-            setProfile(data)
-          }, 0)
-        } else {
-          setProfile(null)
-        }
       }
-    )
+    })
 
-    return () => {
-      subscription.unsubscribe()
-    }
+    return () => subscription.unsubscribe()
   }, [])
 
-  const isAdmin = profile?.user_type === 'admin'
-  const isLawyer = profile?.user_type === 'lawyer'
-  const isUser = profile?.user_type === 'user'
+  const loadProfile = async (userId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .single()
 
-  return (
-    <AuthContext.Provider
-      value={{
-        user,
-        session,
-        profile,
-        loading,
-        isAuthenticated: !!user,
-        isAdmin,
-        isLawyer,
-        isUser,
-        signOut: AuthService.signOut
-      }}
-    >
-      {children}
-    </AuthContext.Provider>
-  )
+      if (error) throw error
+      setProfile(data)
+    } catch (error) {
+      console.error('Error loading profile:', error)
+      setProfile(null)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const signOut = async () => {
+    await AuthService.signOut()
+    setUser(null)
+    setSession(null)
+    setProfile(null)
+  }
+
+  const value: AuthContextType = {
+    user,
+    session,
+    profile,
+    loading,
+    isAuthenticated: !!user,
+    isAdmin: profile?.user_type === 'admin',
+    isLawyer: profile?.user_type === 'lawyer',
+    isUser: profile?.user_type === 'user',
+    signOut,
+  }
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }
 
 export function useAuth() {

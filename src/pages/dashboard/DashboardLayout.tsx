@@ -1,12 +1,12 @@
 import { SidebarProvider, Sidebar, SidebarContent, SidebarHeader, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarTrigger } from "@/components/ui/sidebar";
-import { Search, Bell, Key, CreditCard, User, Settings, LogOut, Shield } from "lucide-react";
+import { Search, Bell, Key, CreditCard, User, Settings, Shield } from "lucide-react";
 import { Outlet, Link, useLocation, useNavigate } from "react-router-dom";
 import { Suspense } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/shared/hooks/useAuth";
 import { useAdmin } from "@/shared/hooks/useAdmin";
-import { useToast } from "@/hooks/use-toast";
+import { LogoutButton } from "@/components/auth/LogoutButton";
 import { LoadingSkeleton } from "@/components/LoadingSkeleton";
 import logoTypo from "@/assets/logotype-black.png";
 import logoHorizontal from "@/assets/logo-horizontal-black.png";
@@ -22,27 +22,8 @@ const navigation = [
 const DashboardLayout = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { toast } = useToast();
-  const { profile, signOut } = useAuth();
+  const { profile } = useAuth();
   const { isAdmin } = useAdmin();
-
-  const handleSignOut = async () => {
-    try {
-      await signOut();
-      toast({
-        title: "Logout realizado",
-        description: "Até logo!",
-      });
-      navigate("/");
-    } catch (error) {
-      console.error("Erro ao fazer logout:", error);
-      toast({
-        title: "Erro",
-        description: "Não foi possível sair. Tente novamente.",
-        variant: "destructive",
-      });
-    }
-  };
 
   // Obter iniciais do nome
   const getInitials = (name: string) => {
@@ -124,9 +105,15 @@ const DashboardLayout = () => {
                   </>
                 )}
                 <DropdownMenuSeparator />
-                <DropdownMenuItem className="text-destructive" onClick={handleSignOut}>
-                  <LogOut className="w-4 h-4 mr-2" />
-                  Sair
+                <DropdownMenuItem asChild className="cursor-pointer">
+                  <div className="w-full">
+                    <LogoutButton
+                      variant="ghost"
+                      size="sm"
+                      className="w-full justify-start p-0 h-auto font-normal text-destructive hover:text-destructive hover:bg-transparent"
+                      showConfirmDialog={true}
+                    />
+                  </div>
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>

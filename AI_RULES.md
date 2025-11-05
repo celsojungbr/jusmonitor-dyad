@@ -168,10 +168,26 @@ src/
 - Import from `@/contexts/AuthContext`
 - Use `useAuth()` hook for user state
 - Check `isAuthenticated`, `isAdmin`, `isLawyer`, `isUser`
+- Access `user`, `session`, `profile`, `loading`, `signOut`
 
 ✅ **Protected Routes**:
 - Wrap with `<ProtectedRoute>` for authenticated users
 - Wrap with `<AdminRoute>` for admin-only pages
+
+✅ **Authentication Features**:
+- Email/Password authentication
+- Google OAuth
+- Magic links (passwordless)
+- Password recovery flow
+- Email verification
+- Session persistence
+- Automatic token refresh
+
+✅ **Auth Components**:
+- `<PasswordRecovery />` - Password reset dialog
+- `<ResetPassword />` - Password reset page
+- `<EmailVerification />` - Email verification handler
+- `<LogoutButton />` - Logout with optional confirmation
 
 ### 11. **Error Handling**
 

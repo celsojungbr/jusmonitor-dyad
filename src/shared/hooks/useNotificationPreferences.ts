@@ -1,10 +1,9 @@
-import { useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/integrations/supabase/client'
 import { useAuth } from './useAuth'
 import { useToast } from '@/hooks/use-toast'
 
-export interface NotificationPreferences {
+interface NotificationPreferences {
   id: string
   user_id: string
   email_notifications: boolean
@@ -18,12 +17,11 @@ export interface NotificationPreferences {
 
 export function useNotificationPreferences() {
   const { user } = useAuth()
-  const { toast } = useToast()
   const queryClient = useQueryClient()
+  const { toast } = useToast()
 
-  // Buscar preferências
   const { data: preferences, isLoading } = useQuery({
-    queryKey: ['notification_preferences', user?.id],
+    queryKey: ['notification-preferences', user?.id],
     queryFn: async () => {
       if (!user) return null
 
@@ -44,7 +42,7 @@ export function useNotificationPreferences() {
               process_alerts: true,
               credit_alerts: true,
               system_updates: true,
-              marketing_emails: false
+              marketing_emails: false,
             })
             .select()
             .single()
@@ -61,14 +59,16 @@ export function useNotificationPreferences() {
     staleTime: 5 * 60 * 1000, // 5 minutos
   })
 
-  // Atualizar preferências
   const updateMutation = useMutation({
     mutationFn: async (updates: Partial<NotificationPreferences>) => {
       if (!user) throw new Error('User not authenticated')
 
       const { data, error } = await supabase
         .from('notification_preferences')
-        .update(updates)
+        .update({
+          ...updates,
+          updated_at: new Date().toISOString(),
+        })
         .eq('user_id', user.id)
         .select()
         .single()
@@ -77,31 +77,33 @@ export function useNotificationPreferences() {
       return data as NotificationPreferences
     },
     onSuccess: (data) => {
-      queryClient.setQueryData(['notification_preferences', user?.id], data)
+      queryClient.setQueryData(['notification-preferences', user?.id], data)
       toast({
         title: 'Preferências atualizadas',
-        description: 'Suas preferências de notificação foram salvas.',
+        description: 'Suas preferências de notificação foram salvas',
       })
     },
     onError: (error: any) => {
+      console.error('Error updating preferences:', error)
       toast({
         title: 'Erro ao atualizar',
-        description: error.message || 'Não foi possível salvar suas preferências.',
+        description: error.message || 'Não foi possível salvar as preferências',
         variant: 'destructive',
       })
     },
   })
 
-  // Atualizar uma preferência específica
-  const updatePreference = (key: keyof NotificationPreferences, value: boolean) => {
+  const updatePreference = (
+    key: keyof Omit<NotificationPreferences, 'id' | 'user_id' | 'created_at' | 'updated_at'>,
+    value: boolean
+  ) => {
     updateMutation.mutate({ [key]: value })
   }
 
   return {
     preferences,
     isLoading,
-    isUpdating: updateMutation.isPending,
     updatePreference,
-    updatePreferences: updateMutation.mutate,
+    isUpdating: updateMutation.isPending,
   }
 }
