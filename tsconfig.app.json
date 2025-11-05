@@ -1,7 +1,7 @@
 {
   "extends": "./tsconfig.json",
   "compilerOptions": {
-    "jsx": "react-jsx",
+    "composite": true,
     "types": ["vite/client"]
   },
   "include": ["src"],

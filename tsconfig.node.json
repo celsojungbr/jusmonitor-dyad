@@ -2,10 +2,7 @@
   "extends": "./tsconfig.json",
   "compilerOptions": {
     "composite": true,
-    "module": "ESNext",
-    "moduleResolution": "Bundler",
-    "types": ["node", "vite/client"]
+    "types": ["node"]
   },
-  "include": ["vite.config.ts"],
-  "exclude": ["supabase/**/*"]
+  "include": ["vite.config.ts"]
 }

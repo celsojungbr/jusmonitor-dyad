@@ -1,27 +1,27 @@
-"use client";
-
-import React from "react";
+import { Component, ReactNode } from "react";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 
-type Props = { children: React.ReactNode };
+type Props = { children: ReactNode };
 type State = { hasError: boolean; error: unknown };
 
-class ErrorBoundary extends React.Component<Props, State> {
+export default class ErrorBoundary extends Component<Props, State> {
   constructor(props: Props) {
     super(props);
     this.state = { hasError: false, error: null };
   }
 
-  static getDerivedStateFromError(error: unknown) {
+  static getDerivedStateFromError(error: unknown): State {
     return { hasError: true, error };
   }
 
-  componentDidCatch(error: unknown, info: React.ErrorInfo) {
-    console.error("Route rendering error:", error, info);
+  componentDidCatch(error: unknown, info: unknown) {
+    console.error("ErrorBoundary caught:", error, info);
   }
 
-  reset = () => this.setState({ hasError: false, error: null });
+  reset = () => {
+    this.setState({ hasError: false, error: null });
+  };
 
   render() {
     if (this.state.hasError) {
@@ -33,10 +33,10 @@ class ErrorBoundary extends React.Component<Props, State> {
       return (
         <div className="p-4">
           <Alert variant="destructive">
-            <AlertTitle>Ocorreu um erro</AlertTitle>
-            <AlertDescription className="space-y-3">
-              <div className="text-sm break-words">{message}</div>
-              <Button variant="outline" size="sm" onClick={this.reset}>
+            <AlertTitle>Algo deu errado</AlertTitle>
+            <AlertDescription className="space-y-2">
+              <p className="text-sm">{message}</p>
+              <Button variant="outline" onClick={this.reset}>
                 Tentar novamente
               </Button>
             </AlertDescription>
@@ -47,5 +47,3 @@ class ErrorBoundary extends React.Component<Props, State> {
     return this.props.children;
   }
 }
-
-export default ErrorBoundary;

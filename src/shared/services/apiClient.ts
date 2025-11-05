@@ -1,6 +1,13 @@
 import { supabase } from '@/integrations/supabase/client'
 
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL
+const DEFAULT_SUPABASE_URL = 'https://blopdveolbwqajzklnzu.supabase.co';
+const DEFAULT_SUPABASE_PUBLISHABLE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJsb3BkdmVvbGJ3cWFqemtsbnp1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjIzNjg5NzIsImV4cCI6MjA3Nzk0NDk3Mn0.D_o4zB9fVanYoOiBO98-ED0G9v8JeUJrLb7JIDNtk5o';
+
+const envUrl = import.meta.env.VITE_SUPABASE_URL;
+const envKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+
+const SUPABASE_URL = typeof envUrl === 'string' && envUrl.length > 0 ? envUrl : DEFAULT_SUPABASE_URL;
+const SUPABASE_PUBLISHABLE_KEY = typeof envKey === 'string' && envKey.length > 0 ? envKey : DEFAULT_SUPABASE_PUBLISHABLE_KEY;
 
 export class ApiClient {
   private static async getAuthHeaders(): Promise<HeadersInit> {
@@ -13,7 +20,7 @@ export class ApiClient {
     return {
       'Authorization': `Bearer ${session.access_token}`,
       'Content-Type': 'application/json',
-      'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY
+      'apikey': SUPABASE_PUBLISHABLE_KEY
     }
   }
 
