@@ -2,6 +2,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { Suspense, lazy } from "react";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { AdminRoute } from "@/components/AdminRoute";
 import Landing from "./pages/Landing";
@@ -31,6 +32,11 @@ import AdminPlans from "./pages/admin/AdminPlans";
 import AdminSandbox from "./pages/admin/AdminSandbox";
 import NotFound from "./pages/NotFound";
 
+const CreditsCheckout = lazy(() => import("./pages/dashboard/checkout/CreditsCheckout"));
+const PlanCheckout = lazy(() => import("./pages/dashboard/checkout/PlanCheckout"));
+const CheckoutSuccess = lazy(() => import("./pages/dashboard/checkout/CheckoutSuccess"));
+const CheckoutCancel = lazy(() => import("./pages/dashboard/checkout/CheckoutCancel"));
+
 const App = () => (
   <TooltipProvider>
     <Toaster />
@@ -57,10 +63,38 @@ const App = () => (
           <Route path="senhas" element={<Senhas />} />
           <Route path="planos" element={<Planos />} />
           <Route path="checkout">
-            <Route path="credits" element={<(await import('./pages/dashboard/checkout/CreditsCheckout')).default />} />
-            <Route path="plan/:planId" element={<(await import('./pages/dashboard/checkout/PlanCheckout')).default />} />
-            <Route path="success" element={<(await import('./pages/dashboard/checkout/CheckoutSuccess')).default />} />
-            <Route path="cancel" element={<(await import('./pages/dashboard/checkout/CheckoutCancel')).default />} />
+            <Route
+              path="credits"
+              element={
+                <Suspense fallback={<div className="p-4 text-sm">Carregando...</div>}>
+                  <CreditsCheckout />
+                </Suspense>
+              }
+            />
+            <Route
+              path="plan/:planId"
+              element={
+                <Suspense fallback={<div className="p-4 text-sm">Carregando...</div>}>
+                  <PlanCheckout />
+                </Suspense>
+              }
+            />
+            <Route
+              path="success"
+              element={
+                <Suspense fallback={<div className="p-4 text-sm">Carregando...</div>}>
+                  <CheckoutSuccess />
+                </Suspense>
+              }
+            />
+            <Route
+              path="cancel"
+              element={
+                <Suspense fallback={<div className="p-4 text-sm">Carregando...</div>}>
+                  <CheckoutCancel />
+                </Suspense>
+              }
+            />
           </Route>
           <Route path="perfil" element={<ProfilePage />} />
           <Route path="configuracoes" element={<SettingsPage />} />
