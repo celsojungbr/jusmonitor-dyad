@@ -21,7 +21,7 @@ const Landing = () => {
         />
 
         {/* Gradient Overlay */}
-        <div className="absolute inset-0 bg-gradient-to-b from-background/95 via-background/85 to-background" />
+        <div className="absolute inset-0 bg-gradient-to-b from-background/80 via-background/60 to-background/90" />
 
         {/* Animated particles effect */}
         <div className="absolute inset-0 bg-grid-white/[0.02]" />
