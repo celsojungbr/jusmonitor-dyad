@@ -14,7 +14,7 @@ import { Download } from "lucide-react";
 
 const Header = () => {
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-md border-b">
+    <header className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-md">
       <div className="container mx-auto px-4 h-16 flex items-center justify-between">
         {/* Logo */}
         <Link to="/" className="flex items-center">
@@ -88,20 +88,20 @@ const Header = () => {
               </NavigationMenuContent>
             </NavigationMenuItem>
 
+            <NavigationMenuItem>
+              <NavigationMenuLink asChild>
+                <Link to="/sobre" className={navigationMenuTriggerStyle()}>
+                  Sobre
+                </Link>
+              </NavigationMenuLink>
+            </NavigationMenuItem>
+
             {/* Baixar o App */}
             <NavigationMenuItem>
               <NavigationMenuLink asChild>
                 <Link to="/pwa" className={cn(navigationMenuTriggerStyle(), "gap-2")}>
                   <Download className="h-4 w-4" />
                   Baixar o App
-                </Link>
-              </NavigationMenuLink>
-            </NavigationMenuItem>
-
-            <NavigationMenuItem>
-              <NavigationMenuLink asChild>
-                <Link to="/sobre" className={navigationMenuTriggerStyle()}>
-                  Sobre
                 </Link>
               </NavigationMenuLink>
             </NavigationMenuItem>
