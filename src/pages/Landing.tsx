@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Search, Shield, Bell, FileText, Zap, TrendingUp, Users, Star, Check } from "lucide-react";
+import { Search, Shield, Bell, FileText, Zap, TrendingUp, Users, Star, Check, Linkedin, Twitter, Github } from "lucide-react";
 import { Link } from "react-router-dom";
 import Header from "@/components/Header";
 import logoHorizontal from "@/assets/logo-horizontal-white.png";
@@ -411,35 +411,64 @@ const Landing = () => {
       </section>
 
       {/* Footer */}
-      <footer className="py-12 border-t bg-secondary/50">
-        <div className="container mx-auto px-4">
-          <div className="grid md:grid-cols-4 gap-8 mb-8">
-            <div className="col-span-2">
+      <footer className="bg-[#1F2229] text-slate-300">
+        <div className="container mx-auto px-4 py-16">
+          <div className="grid md:grid-cols-4 gap-10 mb-10">
+            <div className="md:col-span-2">
               <img
                 src={logoHorizontal}
                 alt="JusMonitor"
-                className="h-12 mb-4"
+                className="h-12 mb-5"
               />
-              <p className="text-muted-foreground mb-4">
+              <p className="text-slate-400 mb-6">
                 A plataforma mais completa para monitoramento de processos judiciais.
               </p>
+              <div className="flex items-center gap-4">
+                <a
+                  href="https://www.linkedin.com/company/jusmonitor"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="hover:text-white transition-colors"
+                  aria-label="LinkedIn"
+                >
+                  <Linkedin className="w-5 h-5" />
+                </a>
+                <a
+                  href="https://twitter.com/jusmonitor"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="hover:text-white transition-colors"
+                  aria-label="Twitter"
+                >
+                  <Twitter className="w-5 h-5" />
+                </a>
+                <a
+                  href="https://github.com/jusmonitor"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="hover:text-white transition-colors"
+                  aria-label="GitHub"
+                >
+                  <Github className="w-5 h-5" />
+                </a>
+              </div>
             </div>
 
             <div>
-              <h3 className="font-semibold mb-4">Produto</h3>
+              <h3 className="font-semibold text-white mb-4">Produto</h3>
               <ul className="space-y-2">
                 <li>
-                  <Link to="/recursos" className="text-muted-foreground hover:text-primary transition-colors">
+                  <Link to="/recursos" className="text-slate-400 hover:text-white transition-colors">
                     Recursos
                   </Link>
                 </li>
                 <li>
-                  <Link to="/precos" className="text-muted-foreground hover:text-primary transition-colors">
+                  <Link to="/precos" className="text-slate-400 hover:text-white transition-colors">
                     Preços
                   </Link>
                 </li>
                 <li>
-                  <Link to="/api" className="text-muted-foreground hover:text-primary transition-colors">
+                  <Link to="/api" className="text-slate-400 hover:text-white transition-colors">
                     API
                   </Link>
                 </li>
@@ -447,20 +476,20 @@ const Landing = () => {
             </div>
 
             <div>
-              <h3 className="font-semibold mb-4">Legal</h3>
+              <h3 className="font-semibold text-white mb-4">Legal</h3>
               <ul className="space-y-2">
                 <li>
-                  <Link to="/termos" className="text-muted-foreground hover:text-primary transition-colors">
+                  <Link to="/termos" className="text-slate-400 hover:text-white transition-colors">
                     Termos de Uso
                   </Link>
                 </li>
                 <li>
-                  <Link to="/privacidade" className="text-muted-foreground hover:text-primary transition-colors">
+                  <Link to="/privacidade" className="text-slate-400 hover:text-white transition-colors">
                     Privacidade
                   </Link>
                 </li>
                 <li>
-                  <Link to="/contato" className="text-muted-foreground hover:text-primary transition-colors">
+                  <Link to="/contato" className="text-slate-400 hover:text-white transition-colors">
                     Contato
                   </Link>
                 </li>
@@ -468,8 +497,13 @@ const Landing = () => {
             </div>
           </div>
 
-          <div className="pt-8 border-t text-center text-muted-foreground">
+          <div className="border-t border-slate-700 pt-8 flex flex-col md:flex-row items-center justify-between text-slate-400">
             <p>© 2025 JusMonitor. Todos os direitos reservados.</p>
+            <div className="flex gap-4 mt-4 md:mt-0">
+              <Link to="/termos" className="hover:text-white transition-colors">Termos</Link>
+              <span className="opacity-40">•</span>
+              <Link to="/privacidade" className="hover:text-white transition-colors">Privacidade</Link>
+            </div>
           </div>
         </div>
       </footer>
