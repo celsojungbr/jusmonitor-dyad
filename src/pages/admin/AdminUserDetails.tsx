@@ -35,18 +35,9 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { supabase } from "@/integrations/supabase/client"
+import { Profile } from "@/shared/types" // Importar o tipo Profile
 
-interface UserDetails {
-  id: string
-  full_name: string | null
-  cpf_cnpj: string | null
-  phone: string | null
-  oab_number: string | null
-  user_type: 'user' | 'lawyer' | 'admin'
-  avatar_url: string | null
-  created_at: string
-  updated_at: string
-}
+interface UserDetails extends Profile {} // Usar o tipo Profile diretamente
 
 interface CreditsPlan {
   user_id: string
@@ -100,33 +91,33 @@ const AdminUserDetails = () => {
       const { data: userData, error: userError } = await supabase
         .from('profiles')
         .select('*')
-        .eq('id', userId)
+        .eq('id', userId!) // Adicionado asserção de não-nulo
         .single()
 
       if (userError) throw userError
-      setUser(userData)
-      setEditedUser(userData)
+      setUser(userData as UserDetails) // Cast para o tipo correto
+      setEditedUser(userData as Partial<UserDetails>) // Cast para o tipo correto
 
       // Carregar plano de créditos
       const { data: planData, error: planError } = await supabase
         .from('credits_plans')
         .select('*')
-        .eq('user_id', userId)
+        .eq('user_id', userId!) // Adicionado asserção de não-nulo
         .maybeSingle()
 
       if (planError && planError.code !== 'PGRST116') throw planError
-      setCreditsPlan(planData)
+      setCreditsPlan(planData as CreditsPlan) // Cast para o tipo correto
 
       // Carregar transações
       const { data: transData, error: transError } = await supabase
         .from('credit_transactions')
         .select('*')
-        .eq('user_id', userId)
+        .eq('user_id', userId!) // Adicionado asserção de não-nulo
         .order('created_at', { ascending: false })
         .limit(50)
 
       if (transError) throw transError
-      setTransactions(transData || [])
+      setTransactions(transData as CreditTransaction[] || []) // Cast para o tipo correto
 
     } catch (error) {
       toast({
@@ -145,8 +136,8 @@ const AdminUserDetails = () => {
 
       const { error } = await supabase
         .from('profiles')
-        .update(editedUser)
-        .eq('id', userId)
+        .update(editedUser as Partial<Profile>) // Cast para o tipo correto
+        .eq('id', userId!) // Adicionado asserção de não-nulo
 
       if (error) throw error
 
@@ -266,7 +257,7 @@ const AdminUserDetails = () => {
         <div className="flex items-center gap-4">
           <Button
             variant="ghost"
-            size="icon"
+            size="sm"
             onClick={() => navigate('/dashboard/admin/users')}
           >
             <ArrowLeft className="h-4 w-4" />
@@ -357,7 +348,7 @@ const AdminUserDetails = () => {
                     <SelectContent>
                       <SelectItem value="admin">Admin</SelectItem>
                       <SelectItem value="user">Usuário</SelectItem>
-                      <SelectItem value="inactive">Inativo</SelectItem>
+                      <SelectItem value="lawyer">Advogado</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>

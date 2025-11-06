@@ -80,7 +80,7 @@ const AdminProcesses = () => {
     }
   ]
 
-  const viewConsultations = (processId: string) => {
+  const viewConsultations = (_processId: string) => { // Corrigido: _processId não utilizado
     toast({
       title: "Visualizar Consultas",
       description: "Funcionalidade em desenvolvimento"

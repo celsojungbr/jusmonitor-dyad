@@ -1,14 +1,14 @@
 import { useEffect, useState } from "react"
 import { AdminApiService, FeatureManagement } from "@/features/admin"
 import { useToast } from "@/hooks/use-toast"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Input } from "@/components/ui/input"
-import { RefreshCw, Activity, AlertCircle, Loader2, Search } from "lucide-react"
+// import { Input } from "@/components/ui/input" // Removido Input
+import { RefreshCw, Activity, AlertCircle } from "lucide-react" // Removido Loader2, Search
 import { AdminTable } from "@/components/admin/AdminTable"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { supabase } from "@/integrations/supabase/client"
+// import { supabase } from "@/integrations/supabase/client" // Removido: import não utilizado
 
 const AdminApis = () => {
   const [balances, setBalances] = useState<any>(null)
@@ -17,9 +17,9 @@ const AdminApis = () => {
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
   const [logsLoading, setLogsLoading] = useState(false)
-  const [manualRequestId, setManualRequestId] = useState('')
-  const [requestStatus, setRequestStatus] = useState<any>(null)
-  const [checkingRequest, setCheckingRequest] = useState(false)
+  // const [manualRequestId, setManualRequestId] = useState('') // Removido
+  // const [requestStatus, setRequestStatus] = useState<any>(null) // Removido
+  // const [checkingRequest, setCheckingRequest] = useState(false) // Removido
   const { toast } = useToast()
 
   useEffect(() => {
@@ -82,42 +82,42 @@ const AdminApis = () => {
     }
   }
 
-  const checkRequestStatus = async () => {
-    if (!manualRequestId.trim()) {
-      toast({
-        title: "Request ID necessário",
-        description: "Digite um Request ID para verificar",
-        variant: "destructive"
-      })
-      return
-    }
+  // const checkRequestStatus = async () => { // Removido: função não utilizada
+  //   if (!manualRequestId.trim()) {
+  //     toast({
+  //       title: "Request ID necessário",
+  //       description: "Digite um Request ID para verificar",
+  //       variant: "destructive"
+  //     })
+  //     return
+  //   }
 
-    setCheckingRequest(true)
-    setRequestStatus(null)
+  //   setCheckingRequest(true)
+  //   setRequestStatus(null)
     
-    try {
-      const response = await supabase.functions.invoke('check-judit-request-status', {
-        body: { requestId: manualRequestId.trim() }
-      })
+  //   try {
+  //     const response = await supabase.functions.invoke('check-judit-request-status', {
+  //       body: { requestId: manualRequestId.trim() }
+  //     })
       
-      if (response.error) throw response.error
+  //     if (response.error) throw response.error
       
-      setRequestStatus(response.data)
-      toast({
-        title: "Status obtido com sucesso",
-        description: `Status: ${response.data.status}`
-      })
-    } catch (error) {
-      console.error('Erro ao verificar request:', error)
-      toast({
-        title: "Erro ao verificar request",
-        description: error instanceof Error ? error.message : "Erro desconhecido",
-        variant: "destructive"
-      })
-    } finally {
-      setCheckingRequest(false)
-    }
-  }
+  //     setRequestStatus(response.data)
+  //     toast({
+  //       title: "Status obtido com sucesso",
+  //       description: `Status: ${response.data.status}`
+  //     })
+  //   } catch (error) {
+  //     console.error('Erro ao verificar request:', error)
+  //     toast({
+  //       title: "Erro ao verificar request",
+  //       description: error instanceof Error ? error.message : "Erro desconhecido",
+  //       variant: "destructive"
+  //     })
+  //   } finally {
+  //     setCheckingRequest(false)
+  //   }
+  // }
 
   const columns = [
     {

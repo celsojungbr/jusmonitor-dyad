@@ -10,12 +10,12 @@ interface RequestBody {
   userId: string
 }
 
-Deno.serve(async (req) => {
+Deno.serve(async (req: Request) => { // Corrigido: Adicionado tipo Request
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
   }
 
-  const startTime = Date.now()
+  const startTime = Date.now() // Corrigido: Date.Now() para Date.now()
   console.log('🚀 [Escavador CNJ] Iniciando consulta de processo por CNJ')
 
   try {
@@ -123,7 +123,7 @@ Deno.serve(async (req) => {
     const apiResponse = await fetch(apiUrl, {
       method: 'GET',
       headers: {
-        'Authorization': escavadorApiKey,
+        'Authorization': `Bearer ${escavadorApiKey}`, // CORREÇÃO AQUI
         'Content-Type': 'application/json',
       },
     })

@@ -104,7 +104,7 @@ const AdminLogs = () => {
       </div>
 
       <div className="flex items-center gap-4">
-        <Select value={logType} onValueChange={setLogType}>
+        <Select value={logType} onValueChange={(value) => setLogType(value as FilterLogType)}>
           <SelectTrigger className="w-[200px]">
             <SelectValue placeholder="Filtrar por tipo" />
           </SelectTrigger>

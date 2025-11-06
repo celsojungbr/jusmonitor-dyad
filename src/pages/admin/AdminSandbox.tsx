@@ -12,7 +12,7 @@ import { supabase } from "@/integrations/supabase/client"
 import {
   Play,
   ChevronDown,
-  ChevronUp,
+  // ChevronUp, // Removido: import não utilizado
   Clock,
   CheckCircle2,
   XCircle,
@@ -48,7 +48,7 @@ const validateParameter = (paramType: string, value: string): boolean => {
 }
 
  // Construir payload específico para cada função
-const buildPayload = (functionName: string, paramType: string, paramValue: string, userId: string): Record<string, any> => {
+const buildPayload = (functionName: string, _paramType: string, paramValue: string, userId: string): Record<string, any> => { // Corrigido: _paramType não utilizado
   const payloadMap: Record<string, any> = {
     'escavador_processos_envolvido': {
       document: paramValue,

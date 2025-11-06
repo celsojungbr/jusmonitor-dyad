@@ -11,7 +11,7 @@ interface RequestBody {
   page?: number
 }
 
-Deno.serve(async (req) => {
+Deno.serve(async (req: Request) => { // Corrigido: Adicionado tipo Request
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
   }
@@ -136,7 +136,7 @@ Deno.serve(async (req) => {
     const apiResponse = await fetch(apiUrl, {
       method: 'GET',
       headers: {
-        'Authorization': escavadorApiKey,
+        'Authorization': `Bearer ${escavadorApiKey}`, // CORREÇÃO AQUI
         'Content-Type': 'application/json',
       },
     })

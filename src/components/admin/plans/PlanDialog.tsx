@@ -52,7 +52,7 @@ export function PlanDialog({ open, onOpenChange, plan }: PlanDialogProps) {
     },
   });
 
-  const planType = watch('plan_type');
+  // const planType = watch('plan_type'); // Removido: variável não utilizada
 
   useEffect(() => {
     if (plan) {
