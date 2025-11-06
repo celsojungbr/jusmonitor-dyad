@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Check, Loader2 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useSubscriptionPlans, useActivePromotions } from "@/hooks/usePricing";
+import { useRealtimePricingSync } from "@/shared/hooks/useRealtimePricingSync";
 
 const Precos = () => {
   const { data: plans, isLoading } = useSubscriptionPlans();
@@ -12,6 +13,7 @@ const Precos = () => {
 
   // Ordena os planos pela display_order
   const sortedPlans = plans?.sort((a, b) => a.display_order - b.display_order) || [];
+  useRealtimePricingSync();
 
   // Destaca o plano do meio como "Mais Popular"
   const popularPlanIndex = Math.floor(sortedPlans.length / 2);

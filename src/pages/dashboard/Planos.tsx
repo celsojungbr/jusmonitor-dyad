@@ -7,6 +7,7 @@ import { useCredits } from "@/shared/hooks/useCredits";
 import React, { useState } from "react";
 import { AddCreditsDialog } from "@/features/payments/components/AddCreditsDialog";
 import { SubscribePlanDialog } from "@/features/payments/components/SubscribePlanDialog";
+import { useRealtimePricingSync } from "@/shared/hooks/useRealtimePricingSync";
 
 const Planos = () => {
   const { data: plans, isLoading: plansLoading } = useSubscriptionPlans();
@@ -21,6 +22,7 @@ const Planos = () => {
 
   // Ordena os planos pela display_order
   const sortedPlans = plans?.sort((a, b) => a.display_order - b.display_order) || [];
+  useRealtimePricingSync();
 
   // Calcula a economia baseada no plano Pré-Pago
   const prepaidPlan = sortedPlans.find(p => p.plan_type === 'prepaid');
@@ -92,14 +94,16 @@ const Planos = () => {
             return (
               <Card key={plan.id} className={isMiddlePlan ? 'border-primary' : ''}>
                 <CardHeader>
-                  <div className="flex justify-between items-start">
+                  <div className="flex justify-between items-start flex-wrap gap-2">
                     <div>
                       <CardTitle>{plan.plan_name}</CardTitle>
                       <CardDescription>{plan.description || 'Plano flexível'}</CardDescription>
                     </div>
-                    {savings && savings > 0 && (
-                      <Badge>Economia {savings}%</Badge>
-                    )}
+                    {typeof savings === 'number' && savings > 0 ? (
+                      <Badge className="text-xs px-2 py-0.5 whitespace-nowrap self-start">
+                        Economia {savings}%
+                      </Badge>
+                    ) : null}
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-4">
