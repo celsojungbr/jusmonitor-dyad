@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react"; // Removido useEffect
 import { useAuth } from "@/shared/hooks/useAuth";
 import { useNotificationPreferences } from "@/shared/hooks/useNotificationPreferences";
 import { Button } from "@/components/ui/button";
@@ -17,7 +17,7 @@ export default function SettingsPage() {
   const { user } = useAuth();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
-  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  // const [showCurrentPassword, setShowCurrentPassword] = useState(false); // Removido: variável não utilizada
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 

@@ -1,7 +1,7 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Play, Pause, Trash2, Eye } from "lucide-react";
+import { Plus, Pause, Trash2, Eye } from "lucide-react"; // Removido Play
 import { useNavigate } from "react-router-dom";
 
 const Monitoramentos = () => {

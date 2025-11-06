@@ -15,8 +15,8 @@ const Consultas = () => {
   const [loading, setLoading] = useState(false)
   const [buscas, setBuscas] = useState<Busca[]>([])
   const [processosCache, setProcessosCache] = useState<Record<string, Process[]>>({})
-  const [dadosCadastraisCache, setDadosCadastraisCache] = useState<Record<string, any>>({})
-  const [dadosPenaisCache, setDadosPenaisCache] = useState<Record<string, any>>({})
+  // const [dadosCadastraisCache, setDadosCadastraisCache] = useState<Record<string, any>>({}) // Removido: variável não utilizada
+  // const [dadosPenaisCache, setDadosPenaisCache] = useState<Record<string, any>>({}) // Removido: variável não utilizada
   const [buscasOcultas, setBuscasOcultas] = useState<Set<string>>(new Set()) // IDs das buscas ocultadas pelo usuário
   
   // Estado para busca simples e aprofundamento
@@ -31,14 +31,14 @@ const Consultas = () => {
   useEffect(() => {
     const loadSearchHistory = async () => {
       try {
-        const userId = (await supabase.auth.getUser()).data.user?.id
-        if (!userId) return
+        const currentUserId = (await supabase.auth.getUser()).data.user?.id // Renomeado para evitar conflito
+        if (!currentUserId) return
 
         // Buscar histórico de buscas do usuário
         const { data: searches, error } = await supabase
           .from('user_searches')
           .select('*')
-          .eq('user_id', userId)
+          .eq('user_id', currentUserId)
           .order('created_at', { ascending: false })
           .limit(50)
 
@@ -242,7 +242,7 @@ const Consultas = () => {
     setSimpleSearchResult(null)
     
     try {
-      const userId = (await supabase.auth.getUser()).data.user?.id
+      // const userId = (await supabase.auth.getUser()).data.user?.id // Removido: variável não utilizada
 
       // Para CPF/CNPJ: usar somente Escavador (edge function escavador_consulta_CPF_CNPJ)
       if (data.tipoIdentificador === 'cpf' || data.tipoIdentificador === 'cnpj') {
@@ -376,7 +376,7 @@ const Consultas = () => {
       }
       
       setBuscas([novaBusca, ...buscas])
-      setDadosCadastraisCache(prev => ({ ...prev, [buscaId]: response.data }))
+      // setDadosCadastraisCache(prev => ({ ...prev, [buscaId]: response.data })) // Removido: variável não utilizada
       
       toast({
         title: response.from_cache ? "Consulta cadastral (cache)" : "Consulta cadastral realizada",
@@ -417,7 +417,7 @@ const Consultas = () => {
       }
       
       setBuscas([novaBusca, ...buscas])
-      setDadosPenaisCache(prev => ({ ...prev, [buscaId]: response.data }))
+      // setDadosPenaisCache(prev => ({ ...prev, [buscaId]: response.data })) // Removido: variável não utilizada
       
       toast({
         title: response.from_cache ? "Consulta penal (cache)" : "Consulta penal realizada",

@@ -182,7 +182,7 @@ export const FeatureManagement = () => {
                     <div className="space-y-2">
                       <div className="text-sm font-semibold">Provedores Disponíveis:</div>
                       
-                      {func.availableProviders.map((provider, index) => {
+                      {func.availableProviders.map((provider, _index) => { // Alterado 'index' para '_index'
                         const isEnabled = config?.enabled_apis.includes(provider.name) || false
                         const priorityIndex = config?.api_priority.indexOf(provider.name) ?? -1
                         const priority = priorityIndex >= 0 ? priorityIndex + 1 : null

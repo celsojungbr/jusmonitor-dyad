@@ -8,7 +8,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Upload, UserRound } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+// import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"; // Removido: import não utilizado
 
 export default function ProfilePage() {
   const { user } = useAuth();
@@ -18,9 +18,9 @@ export default function ProfilePage() {
   const [profile, setProfile] = useState({
     full_name: "",
     cpf_cnpj: "",
-    oab_number: "",
-    phone: "",
-    avatar_url: "",
+    oab_number: "" as string | null, // Permitir null
+    phone: "" as string | null, // Permitir null
+    avatar_url: "" as string | null, // Permitir null
     user_type: "user" as "user" | "lawyer" | "admin",
   });
 
@@ -35,7 +35,7 @@ export default function ProfilePage() {
       const { data, error } = await supabase
         .from("profiles")
         .select("*")
-        .eq("id", user?.id)
+        .eq("id", user!.id) // Adicionado asserção de não-nulo
         .single();
 
       if (error) throw error;
@@ -44,9 +44,9 @@ export default function ProfilePage() {
         setProfile({
           full_name: data.full_name || "",
           cpf_cnpj: data.cpf_cnpj || "",
-          oab_number: data.oab_number || "",
-          phone: data.phone || "",
-          avatar_url: data.avatar_url || "",
+          oab_number: data.oab_number || null, // Usar null
+          phone: data.phone || null, // Usar null
+          avatar_url: data.avatar_url || null, // Usar null
           user_type: data.user_type || "user",
         });
       }
@@ -70,10 +70,10 @@ export default function ProfilePage() {
         .update({
           full_name: profile.full_name,
           phone: profile.phone,
-          oab_number: profile.oab_number || null,
+          oab_number: profile.oab_number,
           updated_at: new Date().toISOString(),
         })
-        .eq("id", user?.id);
+        .eq("id", user!.id); // Adicionado asserção de não-nulo
 
       if (error) throw error;
 
@@ -103,7 +103,7 @@ export default function ProfilePage() {
 
       const file = e.target.files[0];
       const fileExt = file.name.split(".").pop();
-      const fileName = `${user?.id}-${Math.random()}.${fileExt}`;
+      const fileName = `${user!.id}-${Math.random()}.${fileExt}`; // Adicionado asserção de não-nulo
       const filePath = `avatars/${fileName}`;
 
       // Upload para o Supabase Storage
@@ -122,7 +122,7 @@ export default function ProfilePage() {
       const { error: updateError } = await supabase
         .from("profiles")
         .update({ avatar_url: publicUrl })
-        .eq("id", user?.id);
+        .eq("id", user!.id); // Adicionado asserção de não-nulo
 
       if (updateError) throw updateError;
 
@@ -144,14 +144,14 @@ export default function ProfilePage() {
     }
   };
 
-  const getInitials = (name: string) => {
-    return name
-      .split(" ")
-      .map((n) => n[0])
-      .join("")
-      .toUpperCase()
-      .slice(0, 2);
-  };
+  // const getInitials = (name: string) => { // Removido: função não utilizada
+  //   return name
+  //     .split(" ")
+  //     .map((n) => n[0])
+  //     .join("")
+  //     .toUpperCase()
+  //     .slice(0, 2);
+  // };
 
   const getUserTypeLabel = (type: string) => {
     const labels = {
@@ -183,7 +183,7 @@ export default function ProfilePage() {
           <CardContent>
             <div className="flex items-center gap-6">
               <Avatar className="h-24 w-24 bg-muted">
-                <AvatarImage src={profile.avatar_url} alt={profile.full_name} />
+                <AvatarImage src={profile.avatar_url || ""} alt={profile.full_name} />
                 <AvatarFallback className="bg-muted">
                   <UserRound className="h-8 w-8 text-muted-foreground" />
                 </AvatarFallback>
@@ -276,7 +276,7 @@ export default function ProfilePage() {
                   <Input
                     id="phone"
                     type="tel"
-                    value={profile.phone}
+                    value={profile.phone || ""}
                     onChange={(e) =>
                       setProfile({ ...profile, phone: e.target.value })
                     }
@@ -289,7 +289,7 @@ export default function ProfilePage() {
                     <Label htmlFor="oab_number">Número OAB</Label>
                     <Input
                       id="oab_number"
-                      value={profile.oab_number}
+                      value={profile.oab_number || ""}
                       onChange={(e) =>
                         setProfile({ ...profile, oab_number: e.target.value })
                       }

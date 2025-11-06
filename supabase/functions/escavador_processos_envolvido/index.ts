@@ -26,7 +26,7 @@ Deno.serve(async (req) => {
     console.log('📝 [Escavador] Parâmetros:', { document, userId, page })
 
     if (!document || !userId) {
-      console.error('❌ [Escavador] Parâmetros faltando')
+      console.error('❌ [Escavador] Parâmetros faltando: document ou userId')
       return new Response(
         JSON.stringify({ error: 'Parâmetros obrigatórios: document, userId' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -34,16 +34,24 @@ Deno.serve(async (req) => {
     }
 
     // Initialize Supabase
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!
-    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')
+    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
+    
+    if (!supabaseUrl || !supabaseKey) {
+      console.error('❌ [Escavador] Variáveis de ambiente Supabase não configuradas.')
+      return new Response(
+        JSON.stringify({ error: 'Variáveis de ambiente SUPABASE_URL ou SUPABASE_SERVICE_ROLE_KEY não configuradas na Edge Function.' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
     const supabase = createClient(supabaseUrl, supabaseKey)
 
     // Get API Key
     const escavadorApiKey = Deno.env.get('ESCAVADOR_API_KEY')
     if (!escavadorApiKey) {
-      console.error('❌ [Escavador] API Key não configurada')
+      console.error('❌ [Escavador] API Key do Escavador não configurada.')
       return new Response(
-        JSON.stringify({ error: 'API Key do Escavador não configurada' }),
+        JSON.stringify({ error: 'API Key do Escavador não configurada no ambiente da Edge Function.' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
@@ -56,7 +64,7 @@ Deno.serve(async (req) => {
 
     // Validate document
     if (cleanDocument.length !== 11 && cleanDocument.length !== 14) {
-      console.error('❌ [Escavador] Documento inválido')
+      console.error('❌ [Escavador] Documento inválido: CPF deve ter 11 dígitos ou CNPJ deve ter 14 dígitos.')
       return new Response(
         JSON.stringify({ error: 'CPF deve ter 11 dígitos ou CNPJ deve ter 14 dígitos' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -64,17 +72,43 @@ Deno.serve(async (req) => {
     }
 
     // Check credits
-    console.log('💰 [Escavador] Verificando créditos...')
+    console.log('💰 [Escavador] Verificando créditos para userId:', userId)
     const { data: creditsPlan, error: creditsError } = await supabase
       .from('credits_plans')
       .select('credits_balance')
       .eq('user_id', userId)
       .single()
 
-    if (creditsError || !creditsPlan) {
-      console.error('❌ [Escavador] Erro ao buscar créditos:', creditsError)
+    if (creditsError) {
+      console.error('❌ [Escavador] Erro ao buscar créditos:', creditsError.message)
+      await supabase.from('system_logs').insert({
+        log_type: 'error',
+        user_id: userId,
+        action: 'escavador_credits_fetch_error',
+        metadata: {
+          error_message: creditsError.message,
+          error_code: creditsError.code,
+          document: cleanDocument
+        }
+      })
       return new Response(
-        JSON.stringify({ error: 'Erro ao verificar créditos' }),
+        JSON.stringify({ error: 'Erro ao verificar créditos', details: creditsError.message }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+    
+    if (!creditsPlan) {
+      console.error('❌ [Escavador] Plano de créditos não encontrado para userId:', userId)
+      await supabase.from('system_logs').insert({
+        log_type: 'error',
+        user_id: userId,
+        action: 'escavador_credits_plan_not_found',
+        metadata: {
+          document: cleanDocument
+        }
+      })
+      return new Response(
+        JSON.stringify({ error: 'Plano de créditos não encontrado para o usuário' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
@@ -112,12 +146,12 @@ Deno.serve(async (req) => {
 
     if (!apiResponse.ok) {
       const errorText = await apiResponse.text()
-      console.error('❌ [Escavador] Erro na API:', errorText)
+      console.error('❌ [Escavador] Erro na API Escavador:', errorText)
 
       await supabase.from('system_logs').insert({
         log_type: 'error',
         user_id: userId,
-        action: 'escavador_api_error',
+        action: 'escavador_api_call_failed',
         metadata: {
           status: apiResponse.status,
           error: errorText,
@@ -241,7 +275,7 @@ Deno.serve(async (req) => {
     )
 
   } catch (error) {
-    console.error('💥 [Escavador] Erro fatal:', error)
+    console.error('💥 [Escavador] Erro fatal na Edge Function:', error)
     
     return new Response(
       JSON.stringify({ 

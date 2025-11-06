@@ -41,16 +41,17 @@ export const useProcessoDetalhes = (cnjNumber: string) => {
       }
 
       // Transform Json types to expected types
+      // Adicionar asserção de não-nulo para garantir que processoData não é null
       const transformedProcesso: Process = {
-        ...processoData,
-        author_names: Array.isArray(processoData.author_names) 
-          ? (processoData.author_names as string[])
+        ...processoData!, 
+        author_names: Array.isArray(processoData!.author_names) 
+          ? (processoData!.author_names as string[])
           : [],
-        defendant_names: Array.isArray(processoData.defendant_names) 
-          ? (processoData.defendant_names as string[])
+        defendant_names: Array.isArray(processoData!.defendant_names) 
+          ? (processoData!.defendant_names as string[])
           : [],
-        parties_cpf_cnpj: Array.isArray(processoData.parties_cpf_cnpj) 
-          ? (processoData.parties_cpf_cnpj as string[])
+        parties_cpf_cnpj: Array.isArray(processoData!.parties_cpf_cnpj) 
+          ? (processoData!.parties_cpf_cnpj as string[])
           : []
       }
 

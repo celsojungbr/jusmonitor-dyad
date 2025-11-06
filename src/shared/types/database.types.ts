@@ -18,10 +18,10 @@ export interface Profile {
   id: string
   user_type: UserType
   full_name: string
-  oab_number?: string
+  oab_number?: string | null // Permitir null
   cpf_cnpj: string
-  phone?: string
-  avatar_url?: string
+  phone?: string | null // Permitir null
+  avatar_url?: string | null // Permitir null
   created_at: string
   updated_at: string
 }
@@ -33,7 +33,7 @@ export interface CreditsPlan {
   credits_balance: number
   credit_cost: number
   subscription_status: SubscriptionStatus
-  next_billing_date?: string
+  next_billing_date?: string | null // Permitir null
   created_at: string
   updated_at: string
 }
@@ -42,12 +42,12 @@ export interface Process {
   id: string
   cnj_number: string
   tribunal: string
-  distribution_date: string
-  status: string
-  case_value: number
-  judge_name: string
-  court_name: string
-  phase: string
+  distribution_date: string | null // Permitir null
+  status: string | null // Permitir null
+  case_value: number | null // Permitir null
+  judge_name: string | null // Permitir null
+  court_name: string | null // Permitir null
+  phase: string | null // Permitir null
   author_names: string[]
   defendant_names: string[]
   parties_cpf_cnpj: string[]
@@ -100,11 +100,11 @@ export interface Monitoring {
   user_id: string
   monitoring_type: SearchType
   monitoring_value: string
-  process_id?: string
+  process_id?: string | null // Permitir null
   frequency: MonitoringFrequency
   status: MonitoringStatus
-  last_check?: string
-  next_check?: string
+  last_check?: string | null // Permitir null
+  next_check?: string | null // Permitir null
   alerts_count: number
   created_at: string
 }
@@ -125,7 +125,7 @@ export interface CredentialVault {
   credential_type: CredentialType
   encrypted_credentials: string
   status: CredentialStatus
-  last_used?: string
+  last_used?: string | null // Permitir null
   created_at: string
 }
 
@@ -149,8 +149,8 @@ export interface ApiConfiguration {
   priority: number
   rate_limit: number
   timeout: number
-  fallback_api?: string
-  last_health_check?: string
+  fallback_api?: string | null // Permitir null
+  last_health_check?: string | null // Permitir null
   created_at: string
   updated_at: string
 }
@@ -168,7 +168,7 @@ export interface EdgeFunctionConfig {
 export interface SystemLog {
   id: string
   log_type: LogType
-  user_id?: string
+  user_id?: string | null // Permitir null
   action: string
   metadata: any
   created_at: string
@@ -181,7 +181,7 @@ export interface Notification {
   title: string
   content: string
   is_read: boolean
-  link_to?: string
+  link_to?: string | null // Permitir null
   created_at: string
 }
 
@@ -192,6 +192,6 @@ export interface Message {
   subject: string
   content: string
   is_read: boolean
-  parent_message_id?: string
+  parent_message_id?: string | null // Permitir null
   created_at: string
 }

@@ -14,7 +14,7 @@ import {
   UserRound,
   ScrollText
 } from "lucide-react";
-import { cn } from "@/lib/utils";
+// import { cn } from "@/lib/utils"; // Removido: import não utilizado
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/shared/hooks/useAuth";
@@ -77,7 +77,7 @@ const AdminLayout = () => {
   };
 
   const userName = profile?.full_name || "Usuário";
-  const userInitials = getInitials(userName);
+  // const userInitials = getInitials(userName); // Removido: variável não utilizada
 
   return (
     <SidebarProvider>

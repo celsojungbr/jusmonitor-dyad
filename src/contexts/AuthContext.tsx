@@ -170,14 +170,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               }
             }
 
-            setProfile(newProfile)
+            setProfile(newProfile as Profile) // Cast para o tipo correto
             return
           }
         }
         throw error
       }
       
-      setProfile(data)
+      setProfile(data as Profile) // Cast para o tipo correto
       // Garantir créditos iniciais se houver promoção ativa para novos usuários
       const { data: planCheck } = await supabase
         .from('credits_plans')

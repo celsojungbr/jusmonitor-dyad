@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Check, Zap, Loader2 } from "lucide-react";
 import { useSubscriptionPlans, usePricingConfigs, useActivePromotions } from "@/hooks/usePricing";
 import { useCredits } from "@/shared/hooks/useCredits";
-import React, { useState } from "react";
+import { useState } from "react"; // Removido React
 import { AddCreditsDialog } from "@/features/payments/components/AddCreditsDialog";
 import { SubscribePlanDialog } from "@/features/payments/components/SubscribePlanDialog";
 import { useRealtimePricingSync } from "@/shared/hooks/useRealtimePricingSync";

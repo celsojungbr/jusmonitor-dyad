@@ -38,7 +38,7 @@ const DashboardLayout = () => {
 
   const userName = profile?.full_name || "Usuário";
   const userType = profile?.user_type === "lawyer" ? "Advogado" : profile?.user_type === "admin" ? "Administrador" : "Usuário";
-  const userInitials = getInitials(userName);
+  // const userInitials = getInitials(userName); // Removido: variável não utilizada
 
   const handleSignOut = async () => {
     try {

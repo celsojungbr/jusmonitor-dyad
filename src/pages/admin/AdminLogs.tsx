@@ -10,11 +10,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { LogType } from "@/shared/types/database.types" // Importar LogType
+
+type FilterLogType = LogType | "all"; // Definir um novo tipo para o filtro
 
 const AdminLogs = () => {
   const [logs, setLogs] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
-  const [logType, setLogType] = useState<string>("all")
+  const [logType, setLogType] = useState<FilterLogType>("all") // Usar o novo tipo
   const { toast } = useToast()
 
   useEffect(() => {
@@ -23,7 +26,8 @@ const AdminLogs = () => {
 
   const loadLogs = async () => {
     try {
-      const typeFilter = logType === "all" ? undefined : logType
+      // O typeFilter será corretamente LogType ou undefined
+      const typeFilter: LogType | undefined = logType === "all" ? undefined : logType;
       const data: any = await AdminApiService.getApiLogs(typeFilter)
       setLogs(data.logs || [])
     } catch (error) {

@@ -15,42 +15,100 @@ Deno.serve(async (req) => {
     return new Response(null, { headers: corsHeaders })
   }
 
-  console.log('🚀 [Escavador CNJ] Iniciando consulta')
+  const startTime = Date.now()
+  console.log('🚀 [Escavador CNJ] Iniciando consulta de processo por CNJ')
 
   try {
     const body: RequestBody = await req.json()
     const { cnjNumber, userId } = body
 
+    console.log('📝 [Escavador CNJ] Parâmetros:', { cnjNumber, userId })
+
     if (!cnjNumber || !userId) {
+      console.error('❌ [Escavador CNJ] Parâmetros faltando: cnjNumber ou userId')
       return new Response(
         JSON.stringify({ error: 'Parâmetros obrigatórios: cnjNumber, userId' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!
-    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+    // Initialize Supabase
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')
+    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
+    
+    if (!supabaseUrl || !supabaseKey) {
+      console.error('❌ [Escavador CNJ] Variáveis de ambiente Supabase não configuradas.')
+      return new Response(
+        JSON.stringify({ error: 'Variáveis de ambiente SUPABASE_URL ou SUPABASE_SERVICE_ROLE_KEY não configuradas na Edge Function.' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
     const supabase = createClient(supabaseUrl, supabaseKey)
 
     const escavadorApiKey = Deno.env.get('ESCAVADOR_API_KEY')
     if (!escavadorApiKey) {
+      console.error('❌ [Escavador CNJ] API Key do Escavador não configurada.')
       return new Response(
-        JSON.stringify({ error: 'API Key não configurada' }),
+        JSON.stringify({ error: 'API Key do Escavador não configurada no ambiente da Edge Function.' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
+    console.log('🔑 [Escavador CNJ] API Key encontrada')
+
     // Check credits
-    const { data: creditsPlan } = await supabase
+    console.log('💰 [Escavador CNJ] Verificando créditos para userId:', userId)
+    const { data: creditsPlan, error: creditsError } = await supabase
       .from('credits_plans')
       .select('credits_balance')
       .eq('user_id', userId)
       .single()
 
-    const requiredCredits = 5
-    if (!creditsPlan || creditsPlan.credits_balance < requiredCredits) {
+    if (creditsError) {
+      console.error('❌ [Escavador CNJ] Erro ao buscar créditos:', creditsError.message)
+      await supabase.from('system_logs').insert({
+        log_type: 'error',
+        user_id: userId,
+        action: 'escavador_cnj_credits_fetch_error',
+        metadata: {
+          error_message: creditsError.message,
+          error_code: creditsError.code,
+          cnjNumber
+        }
+      })
       return new Response(
-        JSON.stringify({ error: 'Créditos insuficientes', required: requiredCredits }),
+        JSON.stringify({ error: 'Erro ao verificar créditos', details: creditsError.message }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+    
+    if (!creditsPlan) {
+      console.error('❌ [Escavador CNJ] Plano de créditos não encontrado para userId:', userId)
+      await supabase.from('system_logs').insert({
+        log_type: 'error',
+        user_id: userId,
+        action: 'escavador_cnj_credits_plan_not_found',
+        metadata: {
+          cnjNumber
+        }
+      })
+      return new Response(
+        JSON.stringify({ error: 'Plano de créditos não encontrado para o usuário' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    const requiredCredits = 5
+    console.log(`💳 [Escavador CNJ] Saldo: ${creditsPlan.credits_balance} | Necessário: ${requiredCredits}`)
+
+    if (creditsPlan.credits_balance < requiredCredits) {
+      console.error('❌ [Escavador CNJ] Créditos insuficientes')
+      return new Response(
+        JSON.stringify({ 
+          error: 'Créditos insuficientes',
+          required: requiredCredits,
+          available: creditsPlan.credits_balance
+        }),
         { status: 402, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
@@ -70,9 +128,22 @@ Deno.serve(async (req) => {
       },
     })
 
+    const responseTime = Date.now() - startTime
+    console.log(`📡 [Escavador CNJ] Resposta recebida em ${responseTime}ms - Status: ${apiResponse.status}`)
+
     if (!apiResponse.ok) {
       const errorText = await apiResponse.text()
-      console.error('❌ [Escavador CNJ] Erro:', errorText)
+      console.error('❌ [Escavador CNJ] Erro na API Escavador:', errorText)
+      await supabase.from('system_logs').insert({
+        log_type: 'error',
+        user_id: userId,
+        action: 'escavador_cnj_api_call_failed',
+        metadata: {
+          status: apiResponse.status,
+          error: errorText,
+          cnjNumber, url: apiUrl
+        }
+      })
       return new Response(
         JSON.stringify({ error: 'Erro na API', details: errorText }),
         { status: apiResponse.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -82,10 +153,20 @@ Deno.serve(async (req) => {
     const apiData = await apiResponse.json()
 
     // Debit credits
-    await supabase
+    console.log('💸 [Escavador CNJ] Debitando créditos...')
+    const { error: debitError } = await supabase
       .from('credits_plans')
-      .update({ credits_balance: creditsPlan.credits_balance - requiredCredits })
+      .update({ 
+        credits_balance: creditsPlan.credits_balance - requiredCredits,
+        updated_at: new Date().toISOString()
+      })
       .eq('user_id', userId)
+
+    if (debitError) {
+      console.error('❌ [Escavador CNJ] Erro ao debitar créditos:', debitError)
+    } else {
+      console.log('✅ [Escavador CNJ] Créditos debitados')
+    }
 
     // Record transaction
     await supabase.from('credit_transactions').insert({
@@ -95,6 +176,17 @@ Deno.serve(async (req) => {
       credits_amount: -requiredCredits,
       cost_in_reais: 0,
       description: `Consulta CNJ ${cleanCnj}`
+    })
+
+    // Record search
+    await supabase.from('user_searches').insert({
+      user_id: userId,
+      search_type: 'cnj',
+      search_value: cleanCnj,
+      credits_consumed: requiredCredits,
+      results_count: apiData.numero_cnj ? 1 : 0, // Assuming 1 result for CNJ search
+      from_cache: false,
+      api_used: 'escavador'
     })
 
     // Save process
@@ -118,7 +210,20 @@ Deno.serve(async (req) => {
       .from('processes')
       .upsert(processData, { onConflict: 'cnj_number' })
 
-    console.log('✅ [Escavador CNJ] Consulta finalizada')
+    // Log success
+    await supabase.from('system_logs').insert({
+      log_type: 'api_call',
+      user_id: userId,
+      action: 'escavador_cnj_consulta_sucesso',
+      metadata: {
+        cnjNumber,
+        results_count: apiData.numero_cnj ? 1 : 0,
+        credits_consumed: requiredCredits,
+        response_time_ms: responseTime
+      }
+    })
+
+    console.log(`🎉 [Escavador CNJ] Consulta finalizada em ${responseTime}ms`)
 
     return new Response(
       JSON.stringify({
@@ -131,7 +236,7 @@ Deno.serve(async (req) => {
     )
 
   } catch (error) {
-    console.error('💥 [Escavador CNJ] Erro:', error)
+    console.error('💥 [Escavador CNJ] Erro fatal na Edge Function:', error)
     return new Response(
       JSON.stringify({ error: 'Erro interno', details: error instanceof Error ? error.message : 'Desconhecido' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
