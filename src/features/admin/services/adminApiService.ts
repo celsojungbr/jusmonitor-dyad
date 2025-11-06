@@ -363,6 +363,34 @@ export class AdminApiService {
     return data
   }
 
+  static async getEscavadorLogs(limit: number = 50) {
+    const { supabase } = await import('@/integrations/supabase/client')
+    
+    const { data, error } = await supabase
+      .from('system_logs')
+      .select('*')
+      .or('action.ilike.%escavador%,metadata->>provider.eq.escavador')
+      .order('created_at', { ascending: false })
+      .limit(limit)
+    
+    if (error) throw error
+    return data
+  }
+
+  static async getEscavadorLogs(limit: number = 50) {
+    const { supabase } = await import('@/integrations/supabase/client')
+    
+    const { data, error } = await supabase
+      .from('system_logs')
+      .select('*')
+      .or('action.ilike.%escavador%,metadata->>provider.eq.escavador')
+      .order('created_at', { ascending: false })
+      .limit(limit)
+    
+    if (error) throw error
+    return data
+  }
+
   static async getAllProcesses() {
     const { supabase } = await import('@/integrations/supabase/client')
 
