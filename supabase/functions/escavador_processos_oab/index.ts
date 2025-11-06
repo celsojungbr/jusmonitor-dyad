@@ -1,5 +1,5 @@
-// No direct imports from deno.land or esm.sh are needed for serve and createClient in Supabase Edge Functions
-// /// <reference lib="deno.ns" /> // Removed as it's not recognized in this context
+// As funções 'serve', 'createClient' e o objeto 'Deno' são globais no ambiente Supabase Edge Functions.
+// Não são necessárias importações ou referências de tipos explícitas para eles.
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -12,7 +12,7 @@ Deno.serve(async (req: Request) => {
   }
 
   try {
-    // createClient is globally available in Supabase Edge Functions
+    // Supabase.createClient é globalmente disponível no ambiente Edge Functions
     const supabaseClient = Supabase.createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
