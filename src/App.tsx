@@ -30,6 +30,7 @@ import AdminApis from "./pages/admin/AdminApis";
 import AdminLogs from "./pages/admin/AdminLogs";
 import AdminPlans from "./pages/admin/AdminPlans";
 import AdminSandbox from "./pages/admin/AdminSandbox";
+import AdminEscavadorLogs from "./pages/admin/AdminEscavadorLogs";
 import NotFound from "./pages/NotFound";
 
 const CreditsCheckout = lazy(() => import("./pages/dashboard/checkout/CreditsCheckout"));
@@ -115,6 +116,7 @@ const App = () => (
           <Route path="apis" element={<AdminApis />} />
           <Route path="logs" element={<AdminLogs />} />
           <Route path="sandbox" element={<AdminSandbox />} />
+          <Route path="escavador-logs" element={<AdminEscavadorLogs />} />
         </Route>
         <Route path="*" element={<NotFound />} />
       </Routes>

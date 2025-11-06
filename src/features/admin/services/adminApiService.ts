@@ -298,15 +298,69 @@ export class AdminApiService {
     return { success: true }
   }
 
-  static async getApiLogs(logType?: string, provider?: string, limit?: number) {
-    const userId = await ApiClient.getCurrentUserId()
+  static async getApiLogs(logType?: string, provider?: string, limit: number = 100) {
+    const { supabase } = await import('@/integrations/supabase/client')
     
-    return ApiClient.callEdgeFunction('get-api-logs', { 
-      userId, 
-      logType, 
-      provider,
-      limit 
-    })
+    let query = supabase
+      .from('system_logs')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(limit)
+    
+    if (logType) {
+      query = query.eq('log_type', logType)
+    }
+    
+    if (provider) {
+      query = query.or(`action.ilike.%${provider}%,metadata->>provider.eq.${provider}`)
+    }
+    
+    const { data, error } = await query
+    
+    if (error) throw error
+    return { logs: data }
+  }
+
+  static async getEscavadorLogs(limit: number = 50) {
+    const { supabase } = await import('@/integrations/supabase/client')
+    
+    const { data, error } = await supabase
+      .from('system_logs')
+      .select('*')
+      .or('action.ilike.%escavador%,metadata->>provider.eq.escavador')
+      .order('created_at', { ascending: false })
+      .limit(limit)
+    
+    if (error) throw error
+    return data
+  }
+
+  static async getEscavadorLogs(limit: number = 50) {
+    const { supabase } = await import('@/integrations/supabase/client')
+    
+    const { data, error } = await supabase
+      .from('system_logs')
+      .select('*')
+      .or('action.ilike.%escavador%,metadata->>provider.eq.escavador')
+      .order('created_at', { ascending: false })
+      .limit(limit)
+    
+    if (error) throw error
+    return data
+  }
+
+  static async getEscavadorLogs(limit: number = 50) {
+    const { supabase } = await import('@/integrations/supabase/client')
+    
+    const { data, error } = await supabase
+      .from('system_logs')
+      .select('*')
+      .or('action.ilike.%escavador%,metadata->>provider.eq.escavador')
+      .order('created_at', { ascending: false })
+      .limit(limit)
+    
+    if (error) throw error
+    return data
   }
 
   static async getAllProcesses() {

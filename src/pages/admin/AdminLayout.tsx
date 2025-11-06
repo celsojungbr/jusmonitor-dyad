@@ -12,7 +12,7 @@ import {
   Package,
   FlaskConical,
   UserRound,
-  Shield
+  ScrollText
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -40,6 +40,7 @@ const adminNav = [
   { name: "APIs", path: "/dashboard/admin/apis", icon: Settings },
   { name: "Logs", path: "/dashboard/admin/logs", icon: FileBarChart },
   { name: "Sandbox", path: "/dashboard/admin/sandbox", icon: FlaskConical },
+  { name: "Logs Escavador", path: "/dashboard/admin/escavador-logs", icon: ScrollText },
 ];
 
 const AdminLayout = () => {
@@ -81,7 +82,6 @@ const AdminLayout = () => {
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full">
-        {/* Sidebar com o mesmo visual do dashboard do usuário */}
         <Sidebar collapsible="icon">
           <SidebarHeader>
             <div className="flex items-center gap-2 px-3 py-4 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-1 group-data-[collapsible=icon]:py-2">
@@ -117,7 +117,6 @@ const AdminLayout = () => {
           </SidebarContent>
 
           <SidebarFooter>
-            {/* Espaço para informações futuras do admin, mantendo a mesma estrutura */}
             <div className="px-3 pb-2">
               <div className="rounded-lg bg-sidebar-accent/60 text-sidebar-accent-foreground p-2 flex items-center justify-between group-data-[collapsible=icon]:flex-col group-data-[collapsible=icon]:items-center group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:p-1 group-data-[collapsible=icon]:gap-0">
                 <span className="text-xs group-data-[collapsible=icon]:hidden">Modo</span>
@@ -127,7 +126,6 @@ const AdminLayout = () => {
           </SidebarFooter>
         </Sidebar>
 
-        {/* Conteúdo principal com header igual ao dashboard do usuário */}
         <div className="flex-1 flex flex-col">
           <header className="h-16 border-b bg-background flex items-center justify-between px-6">
             <SidebarTrigger />

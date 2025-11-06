@@ -1,0 +1,3 @@
+# Edge functions usam Deno, não TypeScript do Node
+*.ts.map
+node_modules/

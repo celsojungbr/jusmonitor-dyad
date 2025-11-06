@@ -123,8 +123,8 @@ export class ConsultaService {
     const userId = await ApiClient.getCurrentUserId()
 
     return ApiClient.callEdgeFunction('escavador_consulta_CPF_CNPJ', {
-      userId,
-      document
+      document,
+      userId
     })
   }
 
