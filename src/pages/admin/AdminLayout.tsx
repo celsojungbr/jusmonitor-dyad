@@ -67,14 +67,14 @@ const AdminLayout = () => {
     }
   };
 
-  const getInitials = (name: string) => {
-    return name
-      .split(" ")
-      .map((n) => n[0])
-      .join("")
-      .toUpperCase()
-      .slice(0, 2);
-  };
+  // const getInitials = (name: string) => { // Removido: função não utilizada
+  //   return name
+  //     .split(" ")
+  //     .map((n) => n[0])
+  //     .join("")
+  //     .toUpperCase()
+  //     .slice(0, 2);
+  // };
 
   const userName = profile?.full_name || "Usuário";
   // const userInitials = getInitials(userName); // Removido: variável não utilizada
