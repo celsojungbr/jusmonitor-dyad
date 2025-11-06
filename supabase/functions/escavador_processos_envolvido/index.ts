@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.78.0'
 
 const corsHeaders = {
@@ -11,7 +12,7 @@ interface RequestBody {
   page?: number
 }
 
-Deno.serve(async (req: Request) => { // Corrigido: Adicionado tipo Request
+Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
   }
@@ -129,14 +130,14 @@ Deno.serve(async (req: Request) => { // Corrigido: Adicionado tipo Request
     }
 
     // Call Escavador API
-    const apiUrl = `https://api.escavador.com/v2/processos/envolvido?q=${cleanDocument}&qo=exact&page=${page}`
+    const apiUrl = `https://api.escavador.com/api/v2/processos/envolvido?q=${cleanDocument}&qo=exact&page=${page}`
     console.log('🌐 [Escavador] URL:', apiUrl)
     console.log('🔐 [Escavador] Enviando requisição...')
 
     const apiResponse = await fetch(apiUrl, {
       method: 'GET',
       headers: {
-        'Authorization': `Bearer ${escavadorApiKey}`, // CORREÇÃO AQUI
+        'Authorization': `Bearer ${escavadorApiKey}`,
         'Content-Type': 'application/json',
       },
     })
