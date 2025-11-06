@@ -122,8 +122,27 @@ export class ConsultaService {
   static async searchEscavadorDocument(document: string) {
     const userId = await ApiClient.getCurrentUserId()
 
-    return ApiClient.callEdgeFunction('escavador_consulta_CPF_CNPJ', {
+    return ApiClient.callEdgeFunction('escavador_processos_envolvido', {
       document,
+      userId
+    })
+  }
+
+  static async searchEscavadorOAB(oab: string, uf: string) {
+    const userId = await ApiClient.getCurrentUserId()
+
+    return ApiClient.callEdgeFunction('escavador_processos_oab', {
+      oab,
+      uf,
+      userId
+    })
+  }
+
+  static async searchEscavadorCNJ(cnjNumber: string) {
+    const userId = await ApiClient.getCurrentUserId()
+
+    return ApiClient.callEdgeFunction('escavador_processo_cnj', {
+      cnjNumber,
       userId
     })
   }

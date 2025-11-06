@@ -24,7 +24,9 @@ import {
 
 // Lista de edge functions disponíveis para teste
 const EDGE_FUNCTIONS = [
-  { value: "escavador_consulta_CPF_CNPJ", label: "Escavador - Consulta CPF/CNPJ", params: ["cpf", "cnpj"], creditCost: 8 },
+  { value: "escavador_processos_envolvido", label: "Escavador - Processos por CPF/CNPJ", params: ["cpf", "cnpj"], creditCost: 9 },
+  { value: "escavador_processos_oab", label: "Escavador - Processos por OAB", params: ["oab"], creditCost: 8 },
+  { value: "escavador_processo_cnj", label: "Escavador - Processo por CNJ", params: ["cnj"], creditCost: 5 },
 ]
 
 // Validação de parâmetros
@@ -48,8 +50,17 @@ const validateParameter = (paramType: string, value: string): boolean => {
  // Construir payload específico para cada função
 const buildPayload = (functionName: string, paramType: string, paramValue: string, userId: string): Record<string, any> => {
   const payloadMap: Record<string, any> = {
-    'escavador_consulta_CPF_CNPJ': {
+    'escavador_processos_envolvido': {
       document: paramValue,
+      userId,
+    },
+    'escavador_processos_oab': {
+      oab: paramValue.split('/')[0] || paramValue,
+      uf: paramValue.split('/')[1] || 'SP',
+      userId,
+    },
+    'escavador_processo_cnj': {
+      cnjNumber: paramValue,
       userId,
     },
   };

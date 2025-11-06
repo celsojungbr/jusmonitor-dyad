@@ -114,7 +114,6 @@ export class AdminApiService {
     )
   }
 
-  // Métodos adicionais para queries diretas (usuários, logs, etc.)
   static async getAllUsers() {
     const { supabase } = await import('@/integrations/supabase/client')
 
@@ -131,23 +130,19 @@ export class AdminApiService {
   static async getUserStats() {
     const { supabase } = await import('@/integrations/supabase/client')
 
-    // Total de usuários
     const { count: totalUsers } = await supabase
       .from('profiles')
       .select('*', { count: 'exact', head: true })
 
-    // Usuários ativos (com créditos)
     const { count: activeUsers } = await supabase
       .from('credits_plans')
       .select('*', { count: 'exact', head: true })
       .gt('credits_balance', 0)
 
-    // Total de processos no DataLake
     const { count: totalProcesses } = await supabase
       .from('processes')
       .select('*', { count: 'exact', head: true })
 
-    // Consumo de créditos hoje
     const today = new Date()
     today.setHours(0, 0, 0, 0)
 
@@ -227,7 +222,6 @@ export class AdminApiService {
   ) {
     const { supabase } = await import('@/integrations/supabase/client')
     
-    // Buscar config anterior para log
     const { data: oldConfig } = await supabase
       .from('edge_function_config')
       .select('*')
@@ -249,7 +243,6 @@ export class AdminApiService {
     
     if (error) throw error
 
-    // Registrar mudança no system_logs
     const { data: { user } } = await supabase.auth.getUser()
     
     await supabase
@@ -275,7 +268,6 @@ export class AdminApiService {
   static async deleteFeatureConfig(functionName: string) {
     const { supabase } = await import('@/integrations/supabase/client')
     
-    // Registrar exclusão no system_logs antes de excluir
     const { data: { user } } = await supabase.auth.getUser()
     
     await supabase
@@ -298,7 +290,7 @@ export class AdminApiService {
     return { success: true }
   }
 
-  static async getApiLogs(logType?: string, provider?: string, limit: number = 100) {
+  static async getApiLogs(logType?: 'api_call' | 'user_action' | 'error' | 'admin_action', provider?: string, limit: number = 100) {
     const { supabase } = await import('@/integrations/supabase/client')
     
     let query = supabase
@@ -319,62 +311,6 @@ export class AdminApiService {
     
     if (error) throw error
     return { logs: data }
-  }
-
-  static async getEscavadorLogs(limit: number = 50) {
-    const { supabase } = await import('@/integrations/supabase/client')
-    
-    const { data, error } = await supabase
-      .from('system_logs')
-      .select('*')
-      .or('action.ilike.%escavador%,metadata->>provider.eq.escavador')
-      .order('created_at', { ascending: false })
-      .limit(limit)
-    
-    if (error) throw error
-    return data
-  }
-
-  static async getEscavadorLogs(limit: number = 50) {
-    const { supabase } = await import('@/integrations/supabase/client')
-    
-    const { data, error } = await supabase
-      .from('system_logs')
-      .select('*')
-      .or('action.ilike.%escavador%,metadata->>provider.eq.escavador')
-      .order('created_at', { ascending: false })
-      .limit(limit)
-    
-    if (error) throw error
-    return data
-  }
-
-  static async getEscavadorLogs(limit: number = 50) {
-    const { supabase } = await import('@/integrations/supabase/client')
-    
-    const { data, error } = await supabase
-      .from('system_logs')
-      .select('*')
-      .or('action.ilike.%escavador%,metadata->>provider.eq.escavador')
-      .order('created_at', { ascending: false })
-      .limit(limit)
-    
-    if (error) throw error
-    return data
-  }
-
-  static async getEscavadorLogs(limit: number = 50) {
-    const { supabase } = await import('@/integrations/supabase/client')
-    
-    const { data, error } = await supabase
-      .from('system_logs')
-      .select('*')
-      .or('action.ilike.%escavador%,metadata->>provider.eq.escavador')
-      .order('created_at', { ascending: false })
-      .limit(limit)
-    
-    if (error) throw error
-    return data
   }
 
   static async getEscavadorLogs(limit: number = 50) {
@@ -440,7 +376,6 @@ export class AdminApiService {
   static async updateUserCredits(userId: string, creditsAmount: number, description: string) {
     const { supabase } = await import('@/integrations/supabase/client')
 
-    // Atualizar saldo
     const { error: updateError } = await supabase
       .from('credits_plans')
       .update({ credits_balance: creditsAmount })
@@ -448,7 +383,6 @@ export class AdminApiService {
 
     if (updateError) throw updateError
 
-    // Registrar transação
     const { error: transactionError } = await supabase
       .from('credit_transactions')
       .insert({

@@ -22,5 +22,5 @@
     "allowJs": true
   },
   "references": [{ "path": "./tsconfig.node.json" }],
-  "exclude": ["node_modules", "dist", "supabase/**/*"]
+  "exclude": ["node_modules", "dist", "supabase"]
 }
