@@ -1,311 +1,283 @@
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3'
+/**
+ * Escavador - Consulta CPF/CNPJ
+ * Body esperado: { document: string, userId: string }
+ *
+ * Fluxo:
+ * 1) Valida Authorization header (apenas presença do token)
+ * 2) Valida CPF/CNPJ
+ * 3) Lê custo em créditos de pricing_config (operation_name='consulta') ou usa 8 por padrão
+ * 4) Valida saldo do usuário
+ * 5) Chama API do Escavador com ESCAVADOR_API_KEY
+ * 6) Normaliza itens e grava (opcionalmente) processos no DataLake
+ * 7) Registra user_searches e debita créditos em credits_plans + credit_transactions
+ * 8) Retorna { success, results_count, items, provider: 'escavador' }
+ */
+
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.78.0'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
 }
 
-interface RequestBody {
-  userId: string
-  document: string
+function jsonResponse(data: unknown, init: ResponseInit = {}) {
+  return new Response(JSON.stringify(data), {
+    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    ...init,
+  })
 }
 
-interface EscavadorProcess {
-  numero_cnj: string
-  titulo_polo_ativo?: string
-  titulo_polo_passivo?: string
-  ano_inicio?: number
-  data_inicio?: string
-  estado_origem?: {
-    nome?: string
-    sigla?: string
-  }
-  data_ultima_movimentacao?: string
-  quantidade_movimentacoes?: number
-  fontes?: Array<{
-    id?: number
-    nome?: string
-    sigla?: string
-    status_predito?: string
-    tribunal?: {
-      sigla?: string
-      nome?: string
-    }
-    capa?: {
-      classe?: string
-      area?: string
-      situacao?: string
-      valor_causa?: {
-        valor_formatado?: string
-      }
-    }
-  }>
+function onlyDigits(value: string): string {
+  return (value || '').replace(/\D/g, '')
 }
 
-interface EscavadorResponse {
-  envolvido_encontrado?: {
-    nome?: string
-    tipo_pessoa?: string
-    quantidade_processos?: number
-  }
-  items?: EscavadorProcess[]
-  links?: {
-    next?: string
-  }
-  paginator?: {
-    per_page?: number
-  }
+function isCpf(doc: string): boolean {
+  return /^\d{11}$/.test(doc)
+}
+
+function isCnpj(doc: string): boolean {
+  return /^\d{14}$/.test(doc)
 }
 
 Deno.serve(async (req) => {
-  // Handle CORS preflight
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
   }
 
   try {
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    )
+    // Autenticação manual (verify_jwt=false por padrão)
+    const authHeader = req.headers.get('Authorization')
+    if (!authHeader) {
+      return jsonResponse({ error: 'Unauthorized' }, { status: 401 })
+    }
 
-    const { userId, document }: RequestBody = await req.json()
+    const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? ''
+    const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    if (!supabaseUrl || !serviceRoleKey) {
+      console.error('Missing Supabase env variables')
+      return jsonResponse({ error: 'Server misconfiguration: SUPABASE envs missing' }, { status: 500 })
+    }
 
-    if (!userId || !document) {
-      return new Response(
-        JSON.stringify({ error: 'userId e document são obrigatórios' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    const supabase = createClient(supabaseUrl, serviceRoleKey)
+
+    const body = await req.json().catch(() => null) as { document?: string; userId?: string } | null
+    if (!body || !body.document || !body.userId) {
+      return jsonResponse({ error: 'Parâmetros ausentes: document e userId são obrigatórios' }, { status: 400 })
+    }
+
+    const doc = onlyDigits(body.document)
+    const userId = body.userId
+    const searchType = isCpf(doc) ? 'cpf' : isCnpj(doc) ? 'cnpj' : null
+    if (!searchType) {
+      return jsonResponse({ error: 'Documento inválido. Informe um CPF (11 dígitos) ou CNPJ (14 dígitos).' }, { status: 400 })
+    }
+
+    // Buscar custo em créditos da operação "consulta"
+    let creditsCost = 8
+    {
+      const { data: pricing } = await supabase
+        .from('pricing_config')
+        .select('credits_cost,is_active')
+        .eq('operation_name', 'consulta')
+        .eq('is_active', true)
+        .limit(1)
+        .maybeSingle()
+
+      if (pricing?.credits_cost && typeof pricing.credits_cost === 'number') {
+        creditsCost = pricing.credits_cost
+      }
+    }
+
+    // Verificar saldo do usuário
+    const { data: plan, error: planError } = await supabase
+      .from('credits_plans')
+      .select('credits_balance, credit_cost')
+      .eq('user_id', userId)
+      .single()
+
+    if (planError) {
+      console.error('Erro ao buscar plano do usuário:', planError.message)
+      return jsonResponse({ error: 'Plano de créditos não encontrado' }, { status: 404 })
+    }
+
+    if ((plan?.credits_balance ?? 0) < creditsCost) {
+      return jsonResponse(
+        { error: 'Créditos insuficientes', required: creditsCost, available: plan?.credits_balance ?? 0 },
+        { status: 402 }
       )
     }
 
-    // Normalizar documento (apenas dígitos)
-    const normalizedDoc = document.replace(/\D/g, '')
-    
-    if (normalizedDoc.length !== 11 && normalizedDoc.length !== 14) {
-      return new Response(
-        JSON.stringify({ error: 'Documento deve ter 11 dígitos (CPF) ou 14 dígitos (CNPJ)' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
-    }
-
-    const docType = normalizedDoc.length === 11 ? 'cpf' : 'cnpj'
-    console.log(`[Escavador CPF/CNPJ] Iniciando busca ${docType.toUpperCase()}: ${normalizedDoc}`)
-
-    // Montar URL do Escavador v2
-    const escavadorUrl = new URL('https://api.escavador.com/api/v2/envolvido/processos')
-    escavadorUrl.searchParams.append('cpf_cnpj', normalizedDoc)
-    escavadorUrl.searchParams.append('ordem', 'desc')
-    escavadorUrl.searchParams.append('limit', '100')  // mínimo 50, múltiplo de 50
-    
-    console.log('[Escavador CPF/CNPJ] URL da requisição:', escavadorUrl.toString())
-
-    console.log(`[Escavador CPF/CNPJ] URL: ${escavadorUrl.toString()}`)
-
+    // Ler secret da Escavador
     const escavadorApiKey = Deno.env.get('ESCAVADOR_API_KEY')
     if (!escavadorApiKey) {
-      throw new Error('ESCAVADOR_API_KEY não configurada')
+      console.error('ESCAVADOR_API_KEY não configurada nos secrets do Supabase')
+      return jsonResponse({ error: 'ESCAVADOR_API_KEY não configurada' }, { status: 500 })
     }
 
-    // Fazer requisição ao Escavador v2 com timeout de 25 segundos
-    const controller = new AbortController()
-    const timeoutId = setTimeout(() => controller.abort(), 25000)
+    // Opcional: buscar endpoint da tabela api_configuration; senão usar um default
+    let endpointUrl: string | null = null
+    {
+      const { data: cfg } = await supabase
+        .from('api_configuration')
+        .select('endpoint_url,is_active')
+        .eq('api_name', 'escavador')
+        .eq('is_active', true)
+        .limit(1)
+        .maybeSingle()
+      endpointUrl = cfg?.endpoint_url ?? null
+    }
+    // Fallback genérico (ajuste se necessário no painel Admin APIs)
+    if (!endpointUrl) {
+      // Endpoint fictício — você pode configurar o URL correto em api_configuration
+      endpointUrl = 'https://api.escavador.com/v2/processes/search'
+    }
 
-    let response: Response
-    try {
-      response = await fetch(escavadorUrl.toString(), {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${escavadorApiKey}`,
-          'X-Requested-With': 'XMLHttpRequest',
-          'Accept': 'application/json',
-          'Content-Type': 'application/json',
-        },
-        signal: controller.signal,
-      })
-
-      clearTimeout(timeoutId)
-      console.log(`[Escavador CPF/CNPJ] Status da API: ${response.status}`)
-    } catch (fetchError: any) {
-      clearTimeout(timeoutId)
-      
-      if (fetchError.name === 'AbortError') {
-        console.error('[Escavador CPF/CNPJ] Timeout após 25 segundos')
-        return new Response(
-          JSON.stringify({ error: 'Timeout: A API Escavador não respondeu a tempo' }),
-          { status: 504, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        )
+    // Chamada à API Escavador
+    const url = `${endpointUrl}?document=${doc}`
+    const apiResp = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${escavadorApiKey}`,
+        'Accept': 'application/json',
       }
-      
-      throw fetchError
-    }
-
-    // Tratamento de erros específicos
-    if (response.status === 401) {
-      console.error('[Escavador CPF/CNPJ] Erro de autenticação (401)')
-      return new Response(
-        JSON.stringify({ error: 'Unauthenticated' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
-    }
-
-    if (response.status === 402) {
-      console.error('[Escavador CPF/CNPJ] Sem saldo de créditos (402)')
-      return new Response(
-        JSON.stringify({ error: 'Você não possui saldo em crédito da API.' }),
-        { status: 402, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
-    }
-
-    if (response.status === 403) {
-      const errorJson = await response.json().catch(() => null)
-      const errorMsg = errorJson?.error || 'Acesso negado pela API Escavador'
-      console.error('[Escavador CPF/CNPJ] Erro 403:', errorMsg)
-      return new Response(
-        JSON.stringify({ 
-          error: errorMsg.includes('bloqueado') || errorMsg.includes('recarga')
-            ? 'Saldo da API Escavador está bloqueado. Faça uma recarga para continuar usando.'
-            : errorMsg
-        }),
-        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
-    }
-
-    if (response.status === 422) {
-      const errorJson = await response.json().catch(() => null)
-      console.log('[Escavador CPF/CNPJ] 422 recebido:', errorJson)
-
-      // Registrar busca sem resultados para não travar UX
-      await supabase.from('user_searches').insert({
-        user_id: userId,
-        search_type: docType,
-        search_value: normalizedDoc,
-        credits_consumed: 0,
-        results_count: 0,
-        from_cache: false,
-        api_used: 'escavador'
-      })
-
-      return new Response(
-        JSON.stringify({
-          results_count: 0,
-          items: [],
-          envolvido_encontrado: null,
-          from_cache: false,
-          credits_consumed: 0,
-          provider: 'escavador_v2',
-          message: 'Parâmetros inválidos para a API Escavador. Verifique o documento enviado.'
-        }),
-        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
-    }
-
-    if (response.status === 404) {
-      console.log('[Escavador CPF/CNPJ] Nenhum resultado encontrado (404)')
-      
-      // Registrar busca sem resultados
-      await supabase.from('user_searches').insert({
-        user_id: userId,
-        search_type: docType,
-        search_value: normalizedDoc,
-        credits_consumed: 0,
-        results_count: 0,
-        from_cache: false,
-        api_used: 'escavador'
-      })
-
-      return new Response(
-        JSON.stringify({
-          results_count: 0,
-          items: [],
-          envolvido_encontrado: null,
-          from_cache: false,
-          credits_consumed: 0,
-          provider: 'escavador_v2',
-          message: 'Nenhum processo encontrado'
-        }),
-        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
-    }
-
-    if (!response.ok) {
-      const errorText = await response.text()
-      console.error(`[Escavador CPF/CNPJ] Erro ${response.status}:`, errorText.substring(0, 200))
-      return new Response(
-        JSON.stringify({ error: `Erro na API Escavador: ${response.status}` }),
-        { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
-    }
-
-    // Sucesso (200)
-    const data: EscavadorResponse = await response.json()
-    const items = data.items || []
-    const resultsCount = items.length
-
-    console.log(`[Escavador CPF/CNPJ] Encontrados ${resultsCount} processos`)
-
-    // Registrar busca
-    await supabase.from('user_searches').insert({
-      user_id: userId,
-      search_type: docType,
-      search_value: normalizedDoc,
-      credits_consumed: 0,
-      results_count: resultsCount,
-      from_cache: false,
-      api_used: 'escavador'
     })
 
-    // Opcional: persistir processos encontrados
-    if (items.length > 0) {
-      console.log(`[Escavador CPF/CNPJ] Persistindo ${items.length} processos...`)
-      
-      for (const item of items) {
-        try {
-          const fonte = item.fontes?.[0]
-          const tribunal = fonte?.sigla || fonte?.tribunal?.sigla || 'Desconhecido'
-          const courtName = fonte?.nome || fonte?.tribunal?.nome || null
-          
-          await supabase.from('processes').upsert({
-            cnj_number: item.numero_cnj,
-            tribunal,
-            court_name: courtName,
-            distribution_date: item.data_inicio || null,
-            status: fonte?.status_predito || fonte?.capa?.situacao || 'Encontrado (Escavador v2)',
-            parties_cpf_cnpj: [normalizedDoc],
-            author_names: item.titulo_polo_ativo ? [item.titulo_polo_ativo] : null,
-            defendant_names: item.titulo_polo_passivo ? [item.titulo_polo_passivo] : null,
-            last_searched_by: userId,
-            source_api: 'escavador',
-            last_update: new Date().toISOString()
-          }, {
-            onConflict: 'cnj_number'
-          })
-        } catch (err) {
-          console.error('[Escavador CPF/CNPJ] Erro ao persistir processo:', err)
+    if (!apiResp.ok) {
+      const errText = await apiResp.text().catch(() => '')
+      console.error('Erro Escavador:', apiResp.status, errText)
+      return jsonResponse(
+        { error: `Escavador API error (${apiResp.status})`, details: errText },
+        { status: 502 }
+      )
+    }
+
+    const raw = await apiResp.json().catch(() => ({}))
+
+    // Normalização de items para o frontend atual (Consultas.ts espera "items" com campos específicos)
+    const normalizeItem = (x: any) => {
+      // Tenta mapear campos comuns; se não existirem mantém mínimos
+      const numero_cnj = x.numero_cnj ?? x.cnj ?? x.cnj_number ?? x.numero ?? null
+      const fonteSigla = x.fontes?.[0]?.sigla ?? x.tribunal?.sigla ?? x.tribunal ?? null
+      const fonteNome = x.fontes?.[0]?.nome ?? x.court_name ?? null
+      const statusPredito = x.fontes?.[0]?.status_predito ?? x.status ?? x.capa?.situacao ?? null
+      const dataInicio = x.data_inicio ?? x.distribution_date ?? null
+      const tituloAtivo = x.titulo_polo_ativo ?? (Array.isArray(x.autores) ? x.autores[0] : null) ?? null
+      const tituloPassivo = x.titulo_polo_passivo ?? (Array.isArray(x.reus) ? x.reus[0] : null) ?? null
+
+      return {
+        numero_cnj,
+        data_inicio: dataInicio,
+        titulo_polo_ativo: tituloAtivo ?? undefined,
+        titulo_polo_passivo: tituloPassivo ?? undefined,
+        fontes: [
+          {
+            sigla: fonteSigla ?? 'Desconhecido',
+            nome: fonteNome ?? undefined,
+            status_predito: statusPredito ?? undefined,
+            capa: {
+              situacao: statusPredito ?? undefined
+            }
+          }
+        ]
+      }
+    }
+
+    let items: any[] = []
+    if (Array.isArray(raw?.items)) {
+      items = raw.items.map(normalizeItem)
+    } else if (Array.isArray(raw?.processes)) {
+      items = raw.processes.map(normalizeItem)
+    } else if (Array.isArray(raw?.results)) {
+      items = raw.results.map(normalizeItem)
+    } else if (raw && typeof raw === 'object') {
+      const possible = raw?.data ?? raw?.result ?? raw?.list
+      if (Array.isArray(possible)) items = possible.map(normalizeItem)
+    }
+
+    const resultsCount = items.length
+
+    // Gravar user_searches
+    await supabase
+      .from('user_searches')
+      .insert({
+        user_id: userId,
+        search_type: searchType,
+        search_value: doc,
+        credits_consumed: creditsCost,
+        results_count: resultsCount,
+        from_cache: false,
+        api_used: 'escavador'
+      })
+
+    // Debitar créditos
+    const newBalance = (plan?.credits_balance ?? 0) - creditsCost
+    await supabase
+      .from('credits_plans')
+      .update({ credits_balance: newBalance })
+      .eq('user_id', userId)
+
+    // Registrar transação de consumo
+    const reaisCost = creditsCost * (plan?.credit_cost ?? 1.0)
+    await supabase
+      .from('credit_transactions')
+      .insert({
+        user_id: userId,
+        transaction_type: 'consumption',
+        operation_type: 'consulta',
+        credits_amount: creditsCost,
+        cost_in_reais: reaisCost,
+        description: `Consulta processual (${searchType.toUpperCase()}) via Escavador`
+      })
+
+    // Opcional: persistir processos básicos no DataLake (para histórico posterior)
+    if (resultsCount > 0) {
+      for (const item of items.slice(0, 200)) { // evita inserir demais
+        const cnjNumber = item.numero_cnj
+        if (!cnjNumber) continue
+
+        // Verifica se já existe
+        const { data: existing } = await supabase
+          .from('processes')
+          .select('id')
+          .eq('cnj_number', cnjNumber)
+          .limit(1)
+          .maybeSingle()
+
+        const payload: any = {
+          cnj_number: cnjNumber,
+          tribunal: item.fontes?.[0]?.sigla ?? 'Desconhecido',
+          court_name: item.fontes?.[0]?.nome ?? null,
+          distribution_date: item.data_inicio ?? null,
+          status: item.fontes?.[0]?.status_predito ?? item.fontes?.[0]?.capa?.situacao ?? null,
+          author_names: item.titulo_polo_ativo ? [String(item.titulo_polo_ativo)] : [],
+          defendant_names: item.titulo_polo_passivo ? [String(item.titulo_polo_passivo)] : [],
+          parties_cpf_cnpj: [doc],
+          last_update: new Date().toISOString(),
+        }
+
+        if (existing?.id) {
+          await supabase
+            .from('processes')
+            .update(payload)
+            .eq('id', existing.id)
+        } else {
+          await supabase
+            .from('processes')
+            .insert(payload)
         }
       }
     }
 
-    return new Response(
-      JSON.stringify({
-        results_count: resultsCount,
-        items,
-        envolvido_encontrado: data.envolvido_encontrado,
-        from_cache: false,
-        credits_consumed: 0,
-        provider: 'escavador_v2',
-        message: resultsCount > 0 
-          ? `${resultsCount} processo(s) encontrado(s)` 
-          : 'Nenhum processo encontrado'
-      }),
-      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    )
-
-  } catch (error) {
-    console.error('[Escavador CPF/CNPJ] Erro:', error)
-    const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido'
-    return new Response(
-      JSON.stringify({ error: errorMessage }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    )
+    return jsonResponse({
+      success: true,
+      provider: 'escavador',
+      results_count: resultsCount,
+      items,
+    }, { status: 200 })
+  } catch (err) {
+    console.error('Unhandled error in escavador_consulta_CPF_CNPJ:', err)
+    const msg = err instanceof Error ? err.message : String(err)
+    return jsonResponse({ error: msg }, { status: 500 })
   }
 })
