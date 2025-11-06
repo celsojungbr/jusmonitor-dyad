@@ -48,7 +48,7 @@ Deno.serve(async (req: Request) => {
     const supabase = createClient(supabaseUrl, supabaseKey)
 
     // Get API Key
-    const escavadorApiKey = Deno.env.get('ESCAVADOR_DYAD_API_KEY') // ATUALIZADO PARA ESCAVADOR_DYAD_API_KEY
+    const escavadorApiKey = Deno.env.get('ESCAVADOR_DYAD_API_KEY')
     if (!escavadorApiKey) {
       console.error('❌ [Escavador] API Key do Escavador não configurada.')
       return new Response(
@@ -130,7 +130,7 @@ Deno.serve(async (req: Request) => {
     }
 
     // Call Escavador API
-    const apiUrl = `https://api.escavador.com/api/v2/processos/envolvido?q=${cleanDocument}&qo=exact&page=${page}`
+    const apiUrl = `https://api.escavador.com/api/v2/processos/envolvido?cpf_cnpj=${cleanDocument}&qo=exact&page=${page}` // CORREÇÃO AQUI
     console.log('🌐 [Escavador] URL:', apiUrl)
     console.log('🔐 [Escavador] Enviando requisição...')
 
