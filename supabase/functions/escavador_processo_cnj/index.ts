@@ -46,7 +46,7 @@ Deno.serve(async (req: Request) => {
     }
     const supabase = createClient(supabaseUrl, supabaseKey)
 
-    const escavadorApiKey = Deno.env.get('ESCAVADOR_API_KEY')
+    const escavadorApiKey = Deno.env.get('ESCAVADOR_DYAD_API_KEY') // ATUALIZADO PARA ESCAVADOR_DYAD_API_KEY
     if (!escavadorApiKey) {
       console.error('❌ [Escavador CNJ] API Key do Escavador não configurada.')
       return new Response(
