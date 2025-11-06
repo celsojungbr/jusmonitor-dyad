@@ -1,6 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { ApiClient } from '@/shared/services/apiClient';
 import {
   PricingConfig,
   SubscriptionPlan,
@@ -37,11 +36,14 @@ export const useCreatePricingConfig = () => {
 
   return useMutation({
     mutationFn: async (dto: CreatePricingConfigDto) => {
-      const created = await ApiClient.callEdgeFunction('admin-pricing', {
-        action: 'create',
-        data: dto,
-      });
-      return created as PricingConfig;
+      const { data, error } = await supabase
+        .from('pricing_config')
+        .insert([dto])
+        .select()
+        .single();
+
+      if (error) throw new Error(error.message);
+      return data as PricingConfig;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['pricing-configs'] });
@@ -66,11 +68,15 @@ export const useUpdatePricingConfig = () => {
 
   return useMutation({
     mutationFn: async ({ id, dto }: { id: string; dto: UpdatePricingConfigDto }) => {
-      const updated = await ApiClient.callEdgeFunction('admin-pricing', {
-        action: 'update',
-        data: { id, dto },
-      });
-      return updated as PricingConfig;
+      const { data, error } = await supabase
+        .from('pricing_config')
+        .update(dto)
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) throw new Error(error.message);
+      return data as PricingConfig;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['pricing-configs'] });
@@ -95,10 +101,12 @@ export const useDeletePricingConfig = () => {
 
   return useMutation({
     mutationFn: async (id: string) => {
-      await ApiClient.callEdgeFunction('admin-pricing', {
-        action: 'delete',
-        data: { id },
-      });
+      const { error } = await supabase
+        .from('pricing_config')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw new Error(error.message);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['pricing-configs'] });
